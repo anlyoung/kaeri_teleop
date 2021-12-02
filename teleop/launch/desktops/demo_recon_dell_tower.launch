@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+<!--kinfu xtion and kinect-->
+<include file="$(find kinfu)/launch/xtion_single.launch"/>
+<include file="$(find kinfu)/launch/kinect_only.launch"/>
+
+</launch>

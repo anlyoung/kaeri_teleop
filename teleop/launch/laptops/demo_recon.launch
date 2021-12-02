@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+
+<!--baxter arm end effector setting-->
+<include file="$(find baxter_custom_urdf)/launch/pen.launch"/>
+<include file="$(find baxter_custom_urdf)/launch/xtion.launch"/>
+
+<!--phantom cursor_visualizer and mesh_pub-->
+<include file="$(find phantom_interface)/launch/phantom_alienware.launch">
+	<arg name="new_window" value="true"/>
+</include>
+
+<!--baxter_controller-->
+<node pkg="baxter_controller" type="baxter_controller_3Drecon" name="baxter_con"/>
+
+<!--vf_interface-->
+<node pkg="vf_interface" type="vf_interface" name="vf_interface" output="screen"/>
+
+<!--kinfu xtion and kinect-->
+<include file="$(find kinfu)/launch/xtion_single.launch"/>
+<include file="$(find kinfu)/launch/kinect_only.launch"/>
+
+<!--rviz-->
+<node name="rviz" args="-d $(find teleop)/rviz/demo_recon.rviz" pkg="rviz" type="rviz"/>
+
+</launch>

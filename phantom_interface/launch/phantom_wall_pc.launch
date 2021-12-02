@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+<arg name="new_window" default="true"/>
+<group if="$(arg new_window)">
+	<node pkg="phantom_interface" type="phantom" name="phtm_main" output="screen"/>
+	<node pkg="phantom_interface" type="cursor_visualizer" name="cursor_viz" output="screen"/>
+	<node pkg="phantom_interface" type="mesh_pub" name="phtm_pub" output="screen" launch-prefix="gnome-terminal --geometry 80x15+0+460 --command"/>
+</group>
+<group unless="$(arg new_window)">
+	<node pkg="phantom_interface" type="phantom" name="phtm_main" output="screen"/>
+	<node pkg="phantom_interface" type="cursor_visualizer" name="cursor_viz" output="screen"/>
+	<node pkg="phantom_interface" type="mesh_pub" name="phtm_pub" output="screen"/>
+</group>
+</launch>

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+<node pkg="baxter_tools" type="tuck_arms.py" name="baxter_init" args="-u"/>
+<include file="$(find rviz_controller)/launch/rviz_controller.launch">
+  <arg name="rviz" value="false"/>
+  <arg name="oculus" value="false" />
+  <arg name="window_size" value="80x15+0+480"/>
+  <arg name="window_title" value="rviz_controller"/>
+</include>
+
+<include file="$(find phantom_interface)/launch/phantom.launch"/>
+
+<arg name="window_title" value="input_manager"/>
+<node pkg="input_manager" type="input_manager" name="input" launch-prefix="gnome-terminal --title=$(arg window_title) --geometry 80x15+0+900 --command"/>
+
+</launch>
+

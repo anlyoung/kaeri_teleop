@@ -1,0 +1,57 @@
+teleop package includes no node. It has only launch and rviz config files for automatic launch of whole robotic demo system.
+
+
+In current configuration, there are 2 configuration to demonstrate the system:
+	2 laptops are used (laptops folder): alienware and dell precision
+	2 desktops are used (desktops folder): wall_pc and dell_tower
+
+////////////////////////////////////////////////////////////////////////////////
+In laptops folder, there are 5 launch files:
+	
+	dell_precision.launch - used in dell_precision laptop. Only runs phantom node in phantom_interface package
+	demo_recon.launch - used on alienware laptop. Just left arm follows HIP (baxter_controller_3Drecon) for 3D reconstruction demo
+	demo_teleop.launch - used on alienware laptop. baxter_controller_teleop is used for robot arm movement, and pen end effector is add on the right hand of robot model
+	playing_pan_teleop.launch - used on alienware laptop. baxter_controller_teleop is used for robot arm movement, and foam_cutter end effector is add on the right hand of robot model
+	sim_teleop.launch - used on alienware laptop. baxter_controller_sim is used for robot arm movement(baxter_world.launch of baxter_gazebo package should be executed on dell_precision laptop beforehand, and sim_baxter.sh should be used to be connected to simulation on alienware laptop).
+
+	1. when you demonstrate 3D reconstruction:
+		- dell_precision: baxter.sh -> dell_precision.launch
+		- alienware: baxter.sh -> demo_recon.launch
+
+	2. when you demonstrate teleoperation:
+		- dell_precision: baxter.sh -> dell_precision.launch
+		- alienware: baxter.sh -> demo_teleop.launch
+
+	3. when you demonstrate foam cutting (playing_pan):
+		- dell_precision: baxter.sh -> dell_precision.launch
+		- alienware: baxter.sh -> playing_pan_teleop.launch
+
+	4. when you demonstrate teleoperation with simulation(gazebo):
+		- dell_precision: baxter.sh sim -> baxter_world.launch (in baxter_gazebo package, terminal 1)
+											baxter.sh sim -> dell_precision.launch (terminal 2)
+		- alienware: sim_baxter.sh -> sim_teleop.launch
+
+////////////////////////////////////////////////////////////////////////////////
+In desktops folder, there are 8 launch files:
+	
+	demo_recon_~.launch - Just left arm follows HIP (baxter_controller_3Drecon) for 3D reconstruction demo
+	demo_teleop_~.launch -baxter_controller_teleop is used for robot arm movement, and pen end effector is add on the right hand of robot model
+	playing_pan_teleop_~.launch - baxter_controller_teleop is used for robot arm movement, and foam_cutter end effector is add on the right hand of robot model
+	sim_teleop_~.launch - baxter_controller_sim is used for robot arm movement(baxter_world.launch of baxter_gazebo package should be executed on dell_tower pc beforehand, and sim_baxter.sh should be used to be connected to simulation on wall_pc).
+
+	1. when you demonstrate 3D reconstruction:
+		- dell_tower: baxter.sh -> demo_recon_dell_tower.launch
+		- wall_pc: baxter.sh -> demo_recon_wall_pc.launch
+
+	2. when you demonstrate teleoperation:
+		- dell_tower: baxter.sh -> demo_teleop_dell_tower.launch
+		- wall_pc: baxter.sh -> demo_teleop_wall_pc.launch
+
+	3. when you demonstrate foam cutting (playing_pan):
+		- dell_tower: baxter.sh -> playing_pan_teleop_dell_tower.launch
+		- wall_pc: baxter.sh -> playing_pan_teleop_wall_pc.launch
+
+	4. when you demonstrate teleoperation with simulation(gazebo):
+		- dell_tower: baxter.sh sim -> baxter_world.launch (in baxter_gazebo package, terminal 1)
+									baxter.sh sim -> sim_teleop_dell_tower.launch (terminal 2)
+		- wall_pc: sim_baxter_desktop.sh -> sim_teleop_wall_pc.launch

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+<!--phantom-->
+<node pkg="phantom_interface" type="phantom" name="phantom" output="screen"/>
+
+<!--baxter untuck arms-->
+<node pkg="baxter_tools" type="tuck_arms.py" name="untuck_arm" output="screen" args="-u"/>
+</launch>

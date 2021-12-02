@@ -1,0 +1,110 @@
+1. Move Baxter's arms into untuck position.
+cd ~/catkin_ws_working_copy
+./baxter.sh
+rosrun baxter_tools tuck_arms.py -u
+
+2. Move left arm camera high up close to the Kinect camera but at an angle (not looking forward like the Kinect)
+
+3. Connect the Kinect USB to the same computer 
+	-if using Dell_Tower, then connect to Dell_Tower
+	-if using Wall_pc, then connect to Wall_pc
+	-when we were using it, the wall_pc was the only one working due to system failure with the Dell_Tower
+
+4. In one terminal, connect to Baxter through "./baxter.sh"
+
+5. Run "roslaunch freenect_launch freenect.launch" in the same terminal as (#4)
+
+6. In a new terminal, run the following steps for the camera calibration. 
+	-these steps can also be found in Matthew Frefilek's "Install" folder. 
+	-the location of the file is in "/media/anltestbed-share/Students/Student2015_MathewFrefilek/Install"
+	-the name of the file is "Trefilek-Technical-Guide_Rev2_Ypark.htm"
+	-these steps can only be run in the Dell_Tower computer
+
+*/////////////////////////////////////////////////////////////////////////////*
+                        Baxter and Kinect Calibration
+To calibrate baxter and the kinect, make sure the head camera is open and run:
+
+#Install freenect if needed
+sudo apt-get install libfreenect-dev
+sudo apt-get install ros-indigo-freenect-launch
+
+rosrun teleop_baxter camserv (only in Dell_Tower computer)
+
+roslaunch freenect_launch freenect.launch
+
+rosrun teleop_baxter cameracalibrator.py --square 0.0254 --size 8x6 --approximate 0.05 left:=/cameras/left_hand_camera/image right:=/camera/rgb/image_raw left_camera:=/cameras/left_hand_camera right_camera:=/camera/rgb
+
+*(make sure you notice the difference: it is left:=/cameras/LEFT_HAND_CAMERA... and not ".../HEAD_CAMERA/...")*
+
+#if you want to see the kinect:
+rosrun image_view image_view image:=/camera/rgb/image_raw    
+
+Only left side of image will appear in a window that should pop up, but both are being logged. This is to handle size issues. Begin moving the chess board around, making sure that the longest part of the board is horizontal and the shortest part of the board is vertical. The terminal where you are running the calibration should notify that pictures are being taken. Also, color blocks should appear in the black and white video stream of the left_hand_camera. 
+
+Begin moving the board around to calibrate. Normally, it reaches around 40 pictures. Once the calibrate button changes colors, press it. The program will freeze for around a minute. Then, save the images. The location of the saved images will be written in the terminal that the calibration was running in. It tends to be in the "tmp" folder. ~/catkin_ws/src/Misc./cam_calibrationThe file should have a ".tar" suffix. Navigate to the folder and make a lists.text with the names of all the images left###.png right###.png etc. 
+
+The list text file has to be written like this:
+left001.png
+right001.png~/catkin_ws/src/Misc./cam_calibration
+left002.png
+right002.png
+left003.png
+...
+
+Make sure to include the number of images you have. 
+
+Next, we need to rotate Baxter's images: (you can skip this if the images are straight)
+sudo apt-get install imagemagick
+#within the image folder
+for file in left*; do convert $file -rotate 180 $file; done
+
+Next, we need to install the calibration software.
+sudo add-apt-repository ppa:joseluisblancoc/mrpt
+sudo apt-get update
+sudo apt-get install libmrpt-dev mrpt-apps
+
+The following comand will open the calibration sof10. tware:
+kinect-stereo-calib
+
+Click "Calibrate a stereo/Kinect camera" and press load list of images. Look for the folder where you saved the images. ln X is 8 and ln Y is 6. The size of quads (in mm) is 25.4 mm for both X and Y. Run the optimizer and the transformations will appear in the "report" console window. You can save the report as a ".ini" file and use line #23 (which are the same first three values of line #31) for the Pose (translation) and the four last values of line #31 for Orientation (quaternion). They ~/catkin_ws/src/Misc./cam_calibrationare in the order of   x_t   y_t   z_t   w_q   x_q   y_q   z_q
+
+These values will be plugged in into the python file "cam_calibration"
+*/////////////////////////////////////////////////////////////////////////////*
+
+7. Without moving Baxter's Left arm, open a new terminal, connect to Baxter through "./baxter.sh," and run rviz:
+rviz -d ~/.rviz/paper_test.rviz
+
+8. In rviz, go to Panels/Displays/TF (make print sure the box is highlighted). Look for "left_hand_camera" and get both the Position and Orientation values. These values will be plugged in into the python file "cam_calibration." You can close Rviz but do not move Baxter's left arm until you are done with the overall calibration.
+
+9. Look for the "cam_calibration" python script and open it with gedit that is found only in the Wall_PC in the directory:
+/home/anl-testbed/catkin_ws_working_copy/src/Misc./cam_calibration
+
+10. Plug in position and orientation values from report in #6 and from Rviz/TF/left_hand_camera in #8. Save file and run:
+python cam_calibration
+
+The printed values from cam_calibration python script should be plugged into the RGBD_link_tf_broadcaster.cpp, which is found in:
+/home/anl-testbed/catkin_ws/src/k~/catkin_ws/src/Misc./cam_calibrationinfu_DL/src/RGBD_link_tf_broadcaster~/catkin_ws/src/Misc./cam_calibration
+
+11. Open RGBD_link_tf_broadcaster.cpp and edit lines #93-99 with the values provided from the cam_calibration file. Save edits.
+
+12. Run "catkin_make" to compile changes on RGBD file. 
+
+13. Run the teleop demo to verify calibration. 
+roslaunch '/home/anl-testbed/catkin_ws_working_copy/src/teleop/launch/desktops/demo_teleop_only_wall_tower.launch' 
+
+Orientation should be calibrated. Translation can be offset a little bit off on the y axis. Here are the coordinates:
++x = forward away from Baxter
+-x = backward towards Baxter
++y = left 
+-y = right
++z = up
+-z = down
+
+(y) trasnlation tends to be off.
+
+14. Open input_manager found in:
+/home/anl-testbed/catkin_ws/src/input_manager/script
+
+Lines #57-62 should be used to fix the small offset of translation. Once calibrated, go in Rviz to Panels/Displays/TF/kinect_link and get th xyz from Position and xyzw from Orientation. Plug this corrected values into the RGBD_link_tf_broadcaster file. Run catkin_make again, and calibration should be done.
+
+

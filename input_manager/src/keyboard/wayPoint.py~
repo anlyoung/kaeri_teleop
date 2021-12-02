@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
+
+class wayPoint:
+    def __init__(self, name, server, pose, fixed = False):
+        self.name = name
+        self.pose = Pose()
+	self.pose.position.x = pose.position.x
+	self.pose.position.y = pose.position.y
+	self.pose.position.z = pose.position.z
+		
+	self.pose.orientation.x = pose.orientation.x
+	self.pose.orientation.y = pose.orientation.y
+	self.pose.orientation.z = pose.orientation.z
+	self.pose.orientation.w = pose.orientation.w	
+
+        self.fixed = fixed
+        self.generateNewInteractiveMarker(server)
+
+    def makeWayPointMarker(self):
+        marker = Marker()
+        marker.type = Marker.ARROW
+        marker.scale.x = 0.025      # arrow shaft diameter
+        marker.scale.y = 0.05       # arrow head diameter
+        marker.scale.z = 0.05       # arrow head length (0 = default)
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 0.7
+        marker.points.append(Point(0, 0, -0.1))
+        marker.points.append(Point(0, 0, 0))
+        return marker
+
+    def processFeedback(self, feedback):
+        self.pose = feedback.pose
+
+    def generateNewInteractiveMarker(self, server):
+        int_marker = InteractiveMarker()
+        int_marker.header.frame_id = "world"
+        int_marker.pose = self.pose
+        int_marker.scale = 0.5
+        marker = self.makeWayPointMarker()
+        int_marker.name = self.name
+
+        control = InteractiveMarkerControl()
+        control.always_visible = True
+        control.interaction_mode = InteractiveMarkerControl.NONE
+        control.markers.append(marker)
+        int_marker.controls.append(control)
+
+        if self.fixed:
+            control = InteractiveMarkerControl()
+            control.orientation.w = 1
+            control.orientation.x = 0
+            control.orientation.y = 0
+            control.orientation.z = 1
+            control.name = "rotate_y"
+            control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+            control.description = "rotate y"
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+            int_marker.controls.append(control)
+
+            control = InteractiveMarkerControl()
+            control.orientation.w = 1
+            control.orientation.x = 0
+            control.orientation.y = 1
+            control.orientation.z = 0
+            control.name = "rotate_z"
+            control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+            control.description = "rotate z"
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+            int_marker.controls.append(control)
+
+            control = InteractiveMarkerControl()
+            control.orientation.w = 1
+            control.orientation.x = 1
+            control.orientation.y = 0
+            control.orientation.z = 0
+            control.name = "rotate_x"
+            control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+            control.description = "rotate x"
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+            int_marker.controls.append(control)
+
+            control = InteractiveMarkerControl()
+            control.orientation.w = 1
+            control.orientation.x = 1
+            control.orientation.y = 0
+            control.orientation.z = 0
+            control.name = "move_x"
+            control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+            control.description = "move x"
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+            int_marker.controls.append(control)
+
+            control = InteractiveMarkerControl()
+            control.orientation.w = 1
+            control.orientation.x = 0
+            control.orientation.y = 1
+            control.orientation.z = 0
+            control.name = "move_z"
+            control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+            control.description = "move z"
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+            int_marker.controls.append(control)
+
+            control = InteractiveMarkerControl()
+            control.orientation.w = 1
+            control.orientation.x = 0
+            control.orientation.y = 0
+            control.orientation.z = 1
+            control.name = "move_y"
+            control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+            control.description = "move y"
+            control.orientation_mode = InteractiveMarkerControl.FIXED
+            int_marker.controls.append(control)
+
+        server.insert(int_marker, self.processFeedback)
+
+
+class wayPoint_interface:
+    def __init__(self):
+        self.nPoints = 0
+        self.interactiveMarkerList = []
+
+    def generateName(self):
+        name = "way_point_%d" %(self.nPoints)
+        self.nPoints = self.nPoints + 1
+        return name
+
+    def generateNewWayPoint(self, server, pose):
+        newWayPoint = wayPoint(self.generateName(),server,pose,False)
+        self.interactiveMarkerList.append(newWayPoint)
+
+    def makePath(self):
+        path = Marker()
+        path.header.frame_id = "world"
+        path.ns = "cursor"
+        path.id = 0;
+
+        path.type = Marker.LINE_STRIP
+        path.action = Marker.ADD
+	path.scale.x = 0.01    		# line width
+        path.color.r = 1.0
+        path.color.g = 1.0
+        path.color.b = 0.3
+        path.color.a = 0.3
+	for i in self.interactiveMarkerList:
+	    path.points.append(Point(i.pose.position.x, i.pose.position.y, i.pose.position.z))
+        path.pose = self.worldEndPoint
+        return path
+
+
+
+
+
+

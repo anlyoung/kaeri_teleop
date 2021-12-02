@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+
+import sys
+sys.path.append('..')
+import keyboard
+import rospy
+
+from std_msgs.msg import String
+
+flag = True
+key_input = String()
+flag_input = False
+
+def print_pressed_keys(e):
+	global flag, flag_input
+	line = ', '.join(str(code) for code in keyboard._pressed_events)
+	# '\r' and end='' overwrites the previous line.
+	# ' '*40 prints 40 spaces at the end to ensure the previous line is cleared.
+	print('\r' + line + ' '*40)
+	if line == '29, 46': flag = False
+	if line == '1': 
+		key_input.data = 'cancel'
+		flag_input = True
+	if line == '79': 
+		key_input.data = 'circle'
+		flag_input = True
+	if line == '80': 
+		key_input.data = 'polygon'
+		flag_input = True
+	if line == '82': 
+		key_input.data = 'move'
+		flag_input = True
+	if line == '111': 
+		key_input.data = 'delete'
+		flag_input = True 
+	if line == '103':
+		key_input.data = 'forward'
+		flag_input = True 
+	if line == '108':
+		key_input.data = 'backward'
+		flag_input = True 
+	if line == '105':
+		key_input.data = 'turn_left'
+		flag_input = True 
+	if line == '106':
+		key_input.data = 'turn_right'
+		flag_input = True 
+	if line == '102':
+		key_input.data = 'upward'
+		flag_input = True 
+	if line == '107':
+		key_input.data = 'downward'
+		flag_input = True 
+
+	
+if __name__=="__main__":
+	rospy.init_node("key_controller")
+	pub_input = rospy.Publisher('key_input', String, queue_size=1)
+
+	keyboard.hook(print_pressed_keys)
+
+	while(flag):
+		if flag_input:
+			pub_input.publish(key_input.data)
+			flag_input = False
+			
+	

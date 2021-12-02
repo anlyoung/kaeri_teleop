@@ -1,0 +1,1 @@
+/home/user/catkin_ws/src/vr_baxter/GUI/RunBaxterGUI.sh

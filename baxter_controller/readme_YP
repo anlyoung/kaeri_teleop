@@ -1,0 +1,12 @@
+baxter_controller package includes 3 node:
+
+	baxter_controller_3D_recon - baxter controller node for 3D reconstruction demo (left arm follows phantom HIP)
+	baxter_controller_teleop - baxter controller node for teleoperation demo (right arm follows phantom HIP and left arm views phantom HIP)
+	baxter_controller_sim - baxter controller node for simulation 
+
+
+baxter_controller nodes requires ik_solver module in src folder
+
+	ik_solver.py - solve inverse kinematics problem and send tracking command to baxter
+	transformations.py - downloaded library for quaternion calculation
+	

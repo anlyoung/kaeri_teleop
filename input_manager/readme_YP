@@ -1,0 +1,11 @@
+input_manager package includes 1 node:
+
+	input_manager
+
+
+This package has keyboard module in src folder, but now it is not used anymore.
+At first, I tried to make a program which can get keyboard input as a background program so that it can read keyboard input even if it's terminal is not activated.
+The keyboard module can access X11 of ubuntu and gather all the keyboard and mouse input. 
+However, it needs sudo authority to access X11, and it conflicts with baxter.sh, so now we are not using it. 
+You may be able to interact with baxter without baxter.sh by modifying ROS_master_URI. Then, I recommend you to change code to use keyboard module.
+	

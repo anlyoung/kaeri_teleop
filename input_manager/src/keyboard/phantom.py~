@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+import rospy
+
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+from tf import transformations
+
+def makeCursor(position, phantomPose):
+    cursor = Marker()
+    cursor.header.frame_id = "world"
+    cursor.ns = "cursor"
+    cursor.id = 0;
+
+    cursor.type = Marker.SPHERE
+    cursor.action = Marker.ADD
+    cursor.scale.x = 0.1
+    cursor.scale.y = 0.1
+    cursor.scale.z = 0.1
+    cursor.color.r = 0.5
+    cursor.color.g = 0.5
+    cursor.color.b = 0.5
+    cursor.color.a = 1.0
+    
+    # cursor point in "Phantom" frame
+    cursor_phantom = [position[0], position[1], position[2], 0]	   
+
+    trans_mat = transformations.translation_matrix([phantomPose.position.x,
+				      		   phantomPose.position.y,
+				      		   phantomPose.position.z])
+
+    rot_mat = transformations.quaternion_matrix([phantomPose.orientation.x,
+				   		phantomPose.orientation.y,
+				   		phantomPose.orientation.z,
+				   		phantomPose.orientation.w])
+
+    cursor_world = numpy.dot(numpy.dot(trans_mat,rot_mat),cursor_phantom)
+    cursor.pose.position.x = cursor_world[0]
+    cursor.pose.position.y = cursor_world[1]
+    cursor.pose.position.z = cursor_world[2]
+    return cursor

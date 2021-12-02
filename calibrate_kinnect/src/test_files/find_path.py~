@@ -1,0 +1,11 @@
+
+import rospkg
+import rospy
+
+# get an instance of RosPack with the default search paths
+rospack = rospkg.RosPack()
+# list all packages, equivalent to rospack list
+rospack.list() 
+
+# get the file path for rospy_tutorials
+print(rospack.get_path('calibrate_kinnect'))

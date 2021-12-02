@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+
+<!--phantom cursor_visualizer and mesh_pub-->
+<include file="$(find phantom_interface)/launch/phantom_alienware.launch">
+	<arg name="new_window" value="true"/>
+</include>
+
+<!--baxter_controller-->
+<node pkg="baxter_controller" type="baxter_controller_sim" name="baxter_con"/>
+
+<!--vf_interface-->
+<node pkg="vf_interface" type="vf_interface" name="vf_interface"/>
+
+<!--kinfu-->
+<include file="$(find kinfu)/launch/kinect_single.launch"/>
+
+<!--input_manager-->
+<node pkg="input_manager" type="input_manager" name="input" launch-prefix="gnome-terminal --geometry 400x8+0+1500 --command"/>
+
+<!--rviz-->
+<node name="rviz" args="-d $(find teleop)/rviz/sim_teleop.rviz" pkg="rviz" type="rviz"/>
+
+</launch>

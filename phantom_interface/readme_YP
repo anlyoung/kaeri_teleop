@@ -1,0 +1,9 @@
+phantom_interface package includes 3 node:
+
+	phantom - manages haptic interface input (stylus pose, buttons on stylus) and render haptic feedback on the device
+	cursor_visualizer - visualize (publish) cursor mesh to render it on rviz
+	mesh_pub - subscribes meshes to render haptic interaction and transform them into phantom frame
+
+
+phantom node requires functions in PhantomROS.h, which are to subscribe and publish messages of phantom node
+	

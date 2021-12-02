@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+
+import rospy
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+from tf.broadcaster import TransformBroadcaster
+import tf
+
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import Point
+from std_msgs.msg import Bool
+from std_msgs.msg import String
+from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import MultiArrayDimension
+
+from modules import command_interface
+
+cInterface = command_interface.command_interface()
+
+def jointCallBack(msg):
+	pose_tmp = Pose()
+	pose_tmp.position.x = msg.position.x
+	pose_tmp.position.y = msg.position.y
+	pose_tmp.position.z = msg.position.z
+	pose_tmp.orientation.w = 1
+
+	cInterface.phtmI.cs_pose_phtm = cInterface.phtmI.poseTransform(cInterface.phtmI.tf_phtm_misalignment, pose_tmp)
+	cInterface.phtmI.cs_pose_phtm.orientation.w = 1
+	cInterface.phtmI.cs_pose_phtm.orientation.x = 0
+	cInterface.phtmI.cs_pose_phtm.orientation.y = 0
+	cInterface.phtmI.cs_pose_phtm.orientation.z = 0
+	cInterface.phtmI.cs_pose_world = cInterface.phtmI.poseTransform(cInterface.phtmI.tf_phtm_rviz, cInterface.phtmI.cs_pose_phtm)	
+
+
+def button1CallBack(msg):
+	#print('1', msg.data)
+	cInterface.phtmI.button1 = msg.data
+
+
+def button2CallBack(msg):
+	#print('2', msg.data)
+	cInterface.phtmI.button2 = msg.data
+
+
+def keyInputCallBack(msg):
+	cInterface.key_input(msg.data)
+
+
+if __name__=="__main__":
+	rospy.init_node("rviz_controller")
+
+	# create publishers 
+	pub_cursor = rospy.Publisher('cursor', Marker, queue_size=10)
+	pub_cursor_point = rospy.Publisher('cursor_point', Marker, queue_size=10)
+	pub_objects = rospy.Publisher('objects', MarkerArray, queue_size=10)
+	pub_object_update = rospy.Publisher('obj_update', Int32MultiArray, queue_size = 1)
+	update_msg = Int32MultiArray()
+	update_msg.layout.dim.append(MultiArrayDimension())
+
+	# create tf broadcaster and listener
+	tf_br = TransformBroadcaster()
+	tf_ls = tf.TransformListener()
+
+	# create subscribers
+	rospy.Subscriber('Phantom_joint_states', Pose, jointCallBack)
+	rospy.Subscriber('Phantom_button1', Bool, button1CallBack)
+	rospy.Subscriber('Phantom_button2', Bool, button2CallBack)
+	
+	rospy.Subscriber('key_input', String, keyInputCallBack) 
+
+	# main loop
+	rate = rospy.Rate(30.0)
+	while not rospy.is_shutdown():
+		# tf frame broadcasting
+		tf_br.sendTransform((cInterface.phtmI.tf_phtm.position.x, cInterface.phtmI.tf_phtm.position.y, cInterface.phtmI.tf_phtm.position.z),
+							(cInterface.phtmI.tf_phtm.orientation.x, cInterface.phtmI.tf_phtm.orientation.y, cInterface.phtmI.tf_phtm.orientation.z, cInterface.phtmI.tf_phtm.orientation.w),
+							rospy.Time.now(), 
+							"phantom", "world") 
+
+		tf_br.sendTransform((cInterface.phtmI.tf_phtm_rviz.position.x, cInterface.phtmI.tf_phtm_rviz.position.y, cInterface.phtmI.tf_phtm_rviz.position.z),
+							(cInterface.phtmI.tf_phtm_rviz.orientation.x, cInterface.phtmI.tf_phtm_rviz.orientation.y, cInterface.phtmI.tf_phtm_rviz.orientation.z, cInterface.phtmI.tf_phtm_rviz.orientation.w),
+							rospy.Time.now(), 
+							"phantom_rviz", "world")
+
+		tf_br.sendTransform((0.145,0.042,0.97), (0.013, 0.273, -0.056, 0.960), rospy.Time.now(), "kinect1_link", "world")
+		
+		# tf frame listening
+		try:
+			now = rospy.Time(0)
+			tf_ls.waitForTransform('/oculus', '/world', now, rospy.Duration(0.1))
+			(oc_trans,oc_rot) = tf_ls.lookupTransform('/world', '/oculus', now)
+			cInterface.phtmI.tf_ocls.position.x = oc_trans[0]
+			cInterface.phtmI.tf_ocls.position.y = oc_trans[1]
+			cInterface.phtmI.tf_ocls.position.z = oc_trans[2]
+			cInterface.phtmI.tf_ocls.orientation.w = oc_rot[3]
+			cInterface.phtmI.tf_ocls.orientation.x = oc_rot[0]
+			cInterface.phtmI.tf_ocls.orientation.y = oc_rot[1]
+			cInterface.phtmI.tf_ocls.orientation.z = oc_rot[2]
+			cInterface.phtmI.tf_ocls_rviz = cInterface.phtmI.poseTransform(cInterface.phtmI.tf_ocls, cInterface.phtmI.tf_ocls_misalignment)
+		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+			print("!")
+			continue	
+		
+		# cursor update
+		pub_cursor.publish(cInterface.phtmI.updateCursor())
+
+		# phantom input update
+		cInterface.check_phantom_input()
+
+		# object update
+		pub_objects.publish(cInterface.obj_manager.markerArray)
+		
+		# haptic update flag for any change on scene
+		if cInterface.obj_manager.check_update():
+			update_msg.layout.dim[0].size = len(cInterface.obj_manager.object_list)
+			update_msg.layout.dim[0].stride = len(cInterface.obj_manager.object_list)
+			update_msg.data = [0]*len(cInterface.obj_manager.object_list)
+			for i, obj in enumerate(cInterface.obj_manager.object_list):	
+				update_msg.data[i] = obj.id
+			pub_object_update.publish(update_msg)
+		rate.sleep()
+

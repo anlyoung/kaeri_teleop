@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+<!--kinfu-->
+<include file="$(find kinfu)/launch/kinect_single.launch"/>
+</launch>
+

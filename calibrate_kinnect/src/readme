@@ -1,0 +1,21 @@
+1. fill in the all the parameters (x, y, z, w) in "cam_calibration" file and save
+
+2. open terminal and go to the directory which includes "cam_calibration"
+
+3. run "cam_calibration":
+		$python cam_calibration
+
+4. translation and quaternion will be shown up on the terminal (quaternion is in wxyz
+sequence)
+
+5. open (gedit) "kinfu3.launch" file (it is in src/kinfu_DL/launch/)
+
+6. change the parameters in the first line (static_tf_broadcaster, 7 numbers are tr_x tr_y tr_z q_x q_y q_z q_w)
+
+7. run kinfu3.launch:
+		$roslaunch kinfu kinfu3.launch
+
+8. open rviz:
+		$rviz -d ~/.rviz/paper_test.rviz
+
+9. check coordinates with tf

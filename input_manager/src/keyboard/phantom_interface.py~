@@ -1,0 +1,177 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+import rospy
+
+from interactive_markers.interactive_marker_server import *
+import transformations as trans
+from visualization_msgs.msg import *
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
+
+class phantom_interface:
+	def __init__(self):
+		# cursor pose
+		self.cs_pose_phtm = Pose()
+		self.cs_pose_world = Pose()
+		
+		# 'phantom' frame pose in 'world' frame 
+		self.tf_phtm = Pose()
+		pos = [0,0,0]
+		ori = [1,0,0,0]
+		self.tf_phtm.position.x = pos[0]
+		self.tf_phtm.position.y = pos[1]
+		self.tf_phtm.position.z = pos[2]	
+		self.tf_phtm.orientation.w = ori[0] 
+		self.tf_phtm.orientation.x = ori[1]
+		self.tf_phtm.orientation.y = ori[2]
+		self.tf_phtm.orientation.z = ori[3]
+		
+		self.button1 = False
+		self.button1_save = False
+		self.button1_drag = 0
+		self.button2 = False
+		self.button2_save = False
+		self.button2_drag = 0
+		self.buttons_save = False
+		self.buttons_drag = 0
+
+		self.DRAG_TIME = 30
+		
+		self.cursor = Marker()
+		self.cursor.header.frame_id = "world"
+		self.cursor.ns = "cursor"
+		self.cursor.id = 0;
+		self.cursor.type = Marker.ARROW
+		self.cursor.action = Marker.ADD
+		self.cursor.scale.x = 0.025      	# shaft diameter
+		self.cursor.scale.y = 0.05			# head diameter
+		self.cursor.scale.z = 0.05      	# head length
+		self.cursor.color.r = 1
+		self.cursor.color.g = 0.1
+		self.cursor.color.b = 0.1
+		self.cursor.color.a = 1.0
+		self.cursor.points.append(Point(-0.1, 0.0, 0.0))
+		self.cursor.points.append(Point(0.0, 0.0, 0.0))
+
+		self.point = Marker()
+		self.point.header.frame_id = "world"
+		self.point.ns = "cursor_point"
+		self.point.id = 1	
+		self.point.type = Marker.POINTS
+		self.point.action = Marker.ADD
+		self.point.scale.x = 0.01
+		self.point.scale.y = 0.01
+		self.point.color.r = 1
+		self.point.color.g = 0.1
+		self.point.color.b = 0.1
+		self.point.color.a = 1.0
+
+	def phtm2world(self, pose):
+		q_pose = numpy.array([self.tf_phtm.orientation.w, self.tf_phtm.orientation.x, self.tf_phtm.orientation.y, self.tf_phtm.orientation.z])
+		q_pose_t = trans.quaternion_conjugate(q_pose)
+		pos = numpy.array([0, pose.position.x, pose.position.y, pose.position.z])
+		ori = numpy.array([pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z])
+		
+		res_pos = trans.quaternion_multiply(q_pose,trans.quaternion_multiply(pos,q_pose_t))
+		res_pos = res_pos[1:]
+		res_ori = trans.quaternion_multiply(q_pose,ori)
+		"""
+		# transformation matrix		
+		mRot = transformations.quaternion_matrix(q_pose)
+		mTrans = numpy.array([[self.tf_phtm.position.x],[self.tf_phtm.position.y],[self.tf_phtm.position.z]])
+				
+		pos = numpy.array([[pose.position.x],[pose.position.y],[pose.position.z],[1]])
+		ori = numpy.array([pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z])
+		# transformation			
+		rot_pos = numpy.dot(mRot, pos)
+		res_pos = rot_pos[:3]+mTrans
+		res_ori = transformations.quaternion_multiply(q_pose, ori)
+		"""
+		res_pose = Pose()
+		res_pose.position.x = res_pos[0]
+		res_pose.position.y = res_pos[1]
+		res_pose.position.z = res_pos[2]
+		
+		res_pose.orientation.w = res_ori[0]
+		res_pose.orientation.x = res_ori[1]
+		res_pose.orientation.y = res_ori[2]
+		res_pose.orientation.z = res_ori[3]
+		return res_pose
+
+	def moveCursor(self):
+		self.cursor.pose = self.cs_pose_phtm
+		return self.cursor
+	
+	def addPoint(self, pose):
+		self.point.points.append(Point(pose.position.x, pose.position.y, pose.position.z))
+		return self.point
+
+	def clearPoints(self):
+		self.point.points = []
+		return self.point		
+
+	def buttonState(self):
+		# (buttons down both) or (any button stays down after both buttons down)
+		if (self.button1 and self.button2) or (self.button1 and self.buttons_save) or (self.button2 and self.buttons_save):	
+			self.button1_save = False
+			self.button1_drag = 0
+			self.button2_save = False
+			self.button2_drag = 0
+			if self.buttons_save:			
+				self.buttons_drag = self.buttons_drag+1
+				if self.buttons_drag > self.DRAG_TIME:
+					return "btnsdrag"		# buttons dragging
+				else:
+					return "nothing"		# wait for dragging
+			else:							
+				self.buttons_save = True
+				return "btnsdown"			# buttons just down
+
+		# check button release (no button down)
+		if self.buttons_save:
+			self.buttons_save = False
+			self.buttons_drag = 0
+			return "btnsup"					# buttons just released
+
+		# button 1 down
+		if self.button1: 					
+			if self.button1_save: 			
+				self.button1_drag = self.button1_drag+1
+				if self.button1_drag > self.DRAG_TIME:
+					return "btn1drag"		# button1 dragging
+				else:
+					return "nothing"		# wait for dragging
+			else: 							# button1 just down
+				self.button1_save = True
+				return "btn1down"
+
+		# button 2 down
+		if self.button2: 					
+			if self.button2_save: 			
+				self.button2_drag = self.button2_drag+1
+				if self.button2_drag > self.DRAG_TIME:
+					return "btn2drag"		# button2 dragging
+				else:
+					return "nothing"		# wait for dragging
+			else: 							
+				self.button2_save = True
+				return "btn2down"			# button2 just down
+
+		# button 1 released
+		if self.button1_save:
+			self.button1_drag = 0
+			self.button1_save = False				
+			return "btn1up"					# button1 just released
+
+		# button 2 released
+		if self.button2_save:
+			self.button2_drag = 0
+			self.button2_save = False
+			return "btn2up"					# button2 just released
+
+		# nothing happened
+		return "nothing"
+
+		# double click can be added later

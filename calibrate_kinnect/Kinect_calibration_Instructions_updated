@@ -1,0 +1,54 @@
+================================
+CALIBRATE THE KINECT WITH BAXTER
+Jon Bayert June 24, 2018
+================================
+
+
+(1) Start up baxter and connect to baxter with:
+
+cd ~/catkin_ws_working_copy
+./baxter.sh
+
+(2) Untuck arms (if necessary) :
+
+rosrun baxter_tools tuck_arms.py -u
+
+(3) Lift the left arm up and point the camera on the left arm forward. This way both of the cameras have similar veiws and can see the checkerboad at the same time.
+
+(4) Set up the servers and run the calibration app using the following:
+
+gnome-terminal -x bash -c "roslaunch freenect_launch freenect.launch"
+gnome-terminal -x bash -c "rosrun teleop_baxter camserv"
+rosrun calibrate_kinnect cameracalibrator.py --square 0.0254 --size 8x6 --approximate 0.05 left:=/cameras/left_hand_camera/image right:=/camera/rgb/image_raw left_camera:=/cameras/left_hand_camera right_camera:=/camera/rgb
+
+
+(5) Make sure the Left hand camera's picture is level, otherwise these pictures will have to be rotated. 
+
+(6) From here DO NOT move the left hand until the end of these steps. Hold the checkerboad in the camera until it is highlighted in both camera. The main terminal will show when samples are taken, and around 40 samples the calibrate button will be enabled. Press calibrate. It is normal for the screen to freeze, just wait. Press the save button. And record the folder where calibration was saved, which probably is /home/anl-testbed/catkin_ws_working_copy/src/calibrate_kinnect/data/last_test.
+
+(7) Run:
+kinect-stereo-calib
+
+	(a) Press "Calibrate a stereo/kinect camera (from images in a disk)"
+	(b) Press liad list of images and go to the folder created in step 5. Open lists.txt. All the image pairs should load.
+	(c) Change the Calibration options to the following: ln X is 8 and ln Y is 6. The size of quads (in mm) is 25.4 mm for both X and Y.
+	(d) Press Run Optimizer. Then press "Save calibration" and save to the folder from step 6.
+
+(8) Run the following and you are done:
+rosrun calibrate_kinnect cam_calibration_transform.py
+
+Note: a folder can be specific using -f if there are errors.
+
+
+
+
+========================================
+OTHER CALIBRATION OPTIONS FOR THE KINECT
+========================================
+
+Calibrate the intrinsic values of the IR Camera and rgb camera of the kinect;
+http://wiki.ros.org/openni_launch/Tutorials/IntrinsicCalibration
+
+Calibrate the extrinsic values of the kinect:
+http://wiki.ros.org/openni_launch/Tutorials/ExtrinsicCalibration
+

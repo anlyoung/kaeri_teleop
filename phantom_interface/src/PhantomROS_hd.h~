@@ -1,0 +1,205 @@
+#include <tf/transform_listener.h>
+
+#include <std_msgs/Bool.h>
+#include <std_msgs/Int32.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Point.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
+#include <Eigen/Dense>
+
+struct face{
+	Eigen::Vector3d point0, point1, point2;
+	Eigen::Vector3d vector1, vector2;
+	Eigen::Vector3d normal;
+
+	face(geometry_msgs::Point p0, geometry_msgs::Point p1, geometry_msgs::Point p2){
+		point0 = Eigen::Vector3d(p0.x, p0.y, p0.z);
+		point1 = Eigen::Vector3d(p1.x, p1.y, p1.z);
+		point2 = Eigen::Vector3d(p2.x, p2.y, p2.z);
+
+		vector0 = point1-point0;
+		vector1 = point2-point0;
+
+		normal = vector0.cross(vector1);
+		normal /= normal.norm();	
+	}
+
+	face(tf::Vector3 p0, tf::Vector3 p1, tf::Vector3 p2){
+		point0 = Eigen::Vector3d(p0.x(), p0.y(), p0.z());
+		point1 = Eigen::Vector3d(p1.x(), p1.y(), p1.z());
+		point2 = Eigen::Vector3d(p2.x(), p2.y(), p2.z());
+
+		vector1 = point1-point0;
+		vector2 = point2-point0;
+
+		normal = vector0.cross(vector1);
+		normal /= normal.norm();
+	}
+
+	tf::Vector3 tf_point0(){
+		tf::Vector3 tmp = tf::Vector3(point0.x(), point0.y(), point0.z());
+		return tmp;
+	}
+
+	tf::Vector3 tf_point1(){
+		tf::Vector3 tmp = tf::Vector3(point1.x(), point1.y(), point1.z());
+		return tmp;
+	}
+
+	tf::Vector3 tf_point2(){
+		tf::Vector3 tmp = tf::Vector3(point2.x(), point2.y(), point2.z());
+		return tmp;
+	}
+};
+
+class PhantomROS {
+private:
+	ros::NodeHandle nh;
+	tf::TransformListener & m_tf_listener;
+
+	ros::Publisher m_joint_pub;
+	ros::Publisher m_button1_pub;
+	ros::Publisher m_button2_pub;
+
+	ros::Subscriber m_mesh_sub;
+	
+	std::vector<face> faces;
+	std::vector<face> transformed_faces;
+	std::vector<Eigen::Vector3d> transformed_normals;
+	std::vector<double> distances;
+	
+	Eigen::Vector3d proxy_position;
+	Eigen::Vector3d real_position;
+	std::vector<int> touched_face_idx;
+	
+	geometry_msgs::Pose end_effect_position;
+	std_msgs::Bool button1, button2;	
+
+	double touch_threshold;
+	bool proxy;
+
+public:
+	PhantomROS(ros::NodeHandle &handle, tf::TransformListener &tf_listener): 
+	nh(handle), m_tf_listener(tf_listener)
+	{
+		m_joint_pub = nh.advertise<geometry_msgs::Pose>("Phantom_joint_states", 1);
+		m_button1_pub = nh.advertise<std_msgs::Bool>("Phantom_button1", 1);
+        m_button2_pub = nh.advertise<std_msgs::Bool>("Phantom_button2", 1);
+
+		m_mesh_sub = nh.subscribe("objects", 1, &PhantomROS::meshCallback, this);
+
+		touch_threshold = 0.005;
+		proxy = false;
+	}
+
+	void set_device_info(Eigen::Vector3d position, int buttons){
+		// input unit: mm, scale 10
+		end_effect_position.position.x = position.x();
+		end_effect_position.position.y = position.y();
+		end_effect_position.position.z = position.z();
+
+		real_position = position;
+			
+		button1.data = buttons & 1;
+		button2.data = buttons & 2;	
+	}
+
+	
+
+	void detect_touch(Eigen::Vector3d position){
+		transformed_normals.clear();
+		for (int i = 0; i < transformed_faces.size(); i++){
+			Eigen::Vector3d vec0 = transformed_faces[i].vector0;			
+			Eigen::Vector3d vec1 = transformed_faces[i].vector1;	
+			Eigen::Vector3d vec = position - transformed_faces[i].point0;
+
+			Eigen::Vector3d normal = transformed_faces[i].normal;
+						
+			double dist = normal.dot(vec);
+			if (dist > 0 && dist < touch_threshold){
+				Eigen::Vector3d proj = vec - normal*dist;
+
+				Eigen::MatrixXd vmat(3,2);
+				vmat << vec0, vec1;
+				Eigen::MatrixXd tmp = vmat.transpose()*vmat;
+				Eigen::MatrixXd vmat_pi = tmp.inverse()*vmat.transpose();
+				Eigen::MatrixXd coeff = vmat_pi*proj;				
+
+				if((coeff(0)>=0.0)&&(coeff(1)>=0.0)&&(coeff(0)+coeff(1)<=1.0)){
+					//touched_face_idx.push_back(i);	
+					//force += (touch_threshold-dist)*normal;	
+					printf("surface %d touched\n", i);		
+				}
+				else{
+					double dist0, dist1, dist2;
+					Eigen::Vector3d v0, v1, v2, p1_p2;
+					p1_p2 = transformed_faces[i].point2 - transformed_faces[i].point1;
+					v0 = transformed_faces[i].point0 - position;
+					v1 = transformed_faces[i].point1 - position;
+					v2 = transformed_faces[i].point2 - position;
+					
+					dist0 = (v0.cross(v1)).norm()/vec0.norm();
+					dist1 = (v1.cross(v2)).norm()/p1_p2.norm();
+					dist2 = (v2.cross(v0)).norm()/vec1.norm();	
+
+					if((dist0<touch_threshold) && (dist1<touch_threshold) && (dist2<touch_threshold)){
+						printf("surface %d touched\n", i);		
+					}									
+				}				
+			}
+		}
+	}
+
+	int get_touched_face_number(){
+		int tmp = touched_face_idx.size();
+		return tmp;
+	}
+
+	bool proxy_exist(){
+		return proxy;
+	}
+	
+	void get_proxy_position(Eigen::Vector3d &pos){
+		pos = proxy_position;
+	}
+
+	void publish_device_info(){
+		m_joint_pub.publish(end_effect_position);
+		m_button1_pub.publish(button1);
+		m_button2_pub.publish(button2);
+		//printf("device info published\n");
+	}
+
+	void meshCallback(const visualization_msgs::MarkerArray& msg){
+		faces.clear();
+		for (int i = 0; i < msg.markers.size(); i++){
+			for (int j = 0; j < msg.markers[i].points.size()/3; j++){
+				faces.push_back(face(msg.markers[i].points[3*j], 
+									msg.markers[i].points[3*j+1], 
+									msg.markers[i].points[3*j+2]));
+			}
+		}
+		//printf("face number: %d\n", (int)faces.size());
+		mesh_transform();
+	}
+	
+	void mesh_transform(){
+		ros::Time now = ros::Time::now();
+		if(m_tf_listener.waitForTransform("phantom", "world", now, ros::Duration(0.1))){
+			tf::StampedTransform tf_world2phantom;			
+			m_tf_listener.lookupTransform("phantom", "world", now, tf_world2phantom);
+			transformed_faces.clear();
+			for (int i = 0; i < faces.size(); i++){
+				tf::Vector3 vtmp0 = tf_world2phantom(faces[i].tf_point0());	
+				tf::Vector3 vtmp1 = tf_world2phantom(faces[i].tf_point1());
+				tf::Vector3 vtmp2 = tf_world2phantom(faces[i].tf_point2());
+				transformed_faces.push_back(face(vtmp0, vtmp1, vtmp2));
+			} 
+		}
+		else{
+			printf("cannot find transform (world to phantom)");
+		} 
+	}
+};

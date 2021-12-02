@@ -1,0 +1,217 @@
+#!/usr/bin/env python
+
+import sys
+sys.path.append('..')
+import keyboard
+import rospy
+
+import baxter_external_devices
+from std_msgs.msg import String
+from std_msgs.msg import Bool
+from std_msgs.msg import Int16MultiArray
+
+flag = True
+teleop_mode = String()
+touch_mode = Bool()
+recon_mode = Bool()
+vf_action = String()
+sensor_command = String()
+RGBD_link_move = String()
+#flag_input = False
+
+touch = True
+recon = True
+mode = 'config'
+action = 'default'
+	
+if __name__=="__main__":
+	sudo = False
+	rospy.init_node("key_controller")
+	pub_mode = rospy.Publisher('teleop_mode', String, queue_size=1)
+	pub_touch = rospy.Publisher('touch_mode', Bool, queue_size=1)	
+	pub_recon = rospy.Publisher('recon_mode', Bool, queue_size=1)	
+	pub_action = rospy.Publisher('vf_action', String, queue_size=1)
+	pub_command = rospy.Publisher('sensor_command', String, queue_size=1)
+	pub_RGBD_link = rospy.Publisher('RGBD_link_move', String, queue_size=1)
+
+	actions = {
+		'1': 'plane',
+		'2': 'line',
+		'3': 'circle',
+		'4': 'sphere',
+		'5': 'cylinder',
+		'6': 'polygon',
+		'7': 'generate_cylinder',
+		' ': 'default',
+		'\x1b': 'delete'
+	}
+
+	sensor_commands = {
+		'w': 'up',
+		's': 'down',
+		'a': 'left',
+		'd': 'right',
+		'f': 'follow'
+	}
+	
+	RGBD_link_frame = {
+		'y': 'pos_x+',
+		'h': 'pos_x-',
+		'u': 'pos_y+',
+		'j': 'pos_y-',
+		'i': 'pos_z+',
+		'k': 'pos_z-',
+
+		'o': 'ori_x+',
+		'l': 'ori_x-',
+		'p': 'ori_y+',
+		';': 'ori_y-',
+		'[': 'ori_z+',
+		"'": 'ori_z-'
+	}
+
+	teleop_mode.data = 'config'
+	touch_mode.data = 'touch_on'
+	vf_action.data = 'default'	
+
+	done = False
+	print("Controlling joints. Press ? for help, Esc to quit.")
+	while not done and not rospy.is_shutdown():
+		c = baxter_external_devices.getch()
+		if c:
+			#catch Esc or ctrl-c
+			if c == '\x03':
+				done = True
+				print('Quit')
+				rospy.signal_shutdown("[INPUT_MANAGER] node end")
+
+			#kevin addition to control valves by pressing "z/x" keys
+			elif c == "z":
+				msg=Int16MultiArray()
+				msg.data=[100,100,100,100]
+				pub=rospy.Publisher("Arduino/Input",Int16MultiArray,latch=True,queue_size=1)
+				pub.publish(msg)
+			elif c == "x":
+				msg=Int16MultiArray()
+				msg.data=[0,0,0,0]
+				pub=rospy.Publisher("Arduino/Input",Int16MultiArray,latch=True,queue_size=1)
+				pub.publish(msg)
+			#............................................................
+
+
+			elif c == "m":
+				print "test"
+				if mode == 'config':
+					mode = 'teleop'
+					teleop_mode.data = mode
+					vf_action.data = 'default'
+				else:
+					mode = 'config'
+					action = 'default'							
+					teleop_mode.data = mode
+					vf_action.data = action
+
+			elif c == "t":
+				if touch:
+					touch = False
+					print("[INPUT_MANAGER] haptic rendering disabled")
+				else:
+					touch = True
+					print("[INPUT_MANAGER] haptic rendering enabled")
+				touch_mode.data = touch
+				pub_touch.publish(touch_mode)	
+
+			elif c == "r":
+				if recon:
+					recon = False
+					print("[INPUT_MANAGER] environment reconstruction disabled")
+				else:
+					recon = True
+					print("[INPUT_MANAGER] environment reconstruction enabled")
+				recon_mode.data = recon
+				pub_recon.publish(recon_mode)		
+
+			elif c in sensor_commands:
+				cmd = sensor_commands[c]
+				sensor_command.data = cmd	
+				pub_command.publish(sensor_command)		
+				print("[INPUT_MANAGER] RGBD sensor move %s" %sensor_command.data)
+
+			elif c in RGBD_link_frame:
+				cmd = RGBD_link_frame[c]
+				RGBD_link_move.data = cmd
+				pub_RGBD_link.publish(RGBD_link_move)
+				print("[INPUT_MANAGER] RGBD_link frame move: %s" %RGBD_link_move.data)
+
+			elif c in actions:
+				if mode == 'config':
+					cmd = actions[c]
+					vf_action.data = cmd
+
+			else:
+				print(c)
+				print("[INPUT_MANAGER] wrong command")
+
+			pub_mode.publish(teleop_mode)
+			pub_action.publish(vf_action)
+			print("[INPUT_MANAGER] current mode: %s" %teleop_mode.data)
+			if mode == 'config':
+				print("[INPUT_MANAGER] current action: %s" %vf_action.data)
+				
+		
+
+"""
+if sudo:
+	keyboard.hook(print_pressed_keys)
+
+	while(flag):
+		if flag_input:
+			pub_input.publish(key_input)
+			flag_input = False
+else:
+"""
+
+"""
+def print_pressed_keys(e):
+	global flag, flag_input
+	line = ', '.join(str(code) for code in keyboard._pressed_events)
+	# '\r' and end='' overwrites the previous line.
+	# ' '*40 prints 40 spaces at the end to ensure the previous line is cleared.
+	print('\r' + line + ' '*40)
+	if line == '29, 46': flag = False
+	if line == '96': 
+		key_input.data = 'cancel'
+		flag_input = True
+	if line == '79': 
+		key_input.data = 'circle'
+		flag_input = True
+	if line == '80': 
+		key_input.data = 'polygon'
+		flag_input = True
+	if line == '82': 
+		key_input.data = 'move'
+		flag_input = True
+	if line == '111': 
+		key_input.data = 'delete'
+		flag_input = True 
+	if line == '103':
+		key_input.data = 'forward'
+		flag_input = True 
+	if line == '108':
+		key_input.data = 'backward'
+		flag_input = True 
+	if line == '105':
+		key_input.data = 'turn_left'
+		flag_input = True 
+	if line == '106':
+		key_input.data = 'turn_right'
+		flag_input = True 
+	if line == '102':
+		key_input.data = 'upward'
+		flag_input = True 
+	if line == '107':
+		key_input.data = 'downward'
+		flag_input = True 
+"""
+		        
+	

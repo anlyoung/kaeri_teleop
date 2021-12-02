@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="baxter_examples" type="send_urdf_fragment.py" name="xtion" args="-f `rospack find baxter_custom_urdf`/urdf/xtion.urdf.xacro -l left_hand -j left_gripper_base" />
+</launch>

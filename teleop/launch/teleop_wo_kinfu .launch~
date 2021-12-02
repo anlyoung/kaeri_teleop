@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+<include file="$(find rviz_controller)/launch/rviz_controller.launch">
+  <arg name="new_window" value="true" />
+  <arg name="window_size" value="70x10+800+260"/>
+  <arg name="window_title" value="rviz_controller"/>
+</include>
+
+<include file="$(find phantom_interface)/launch/phantom.launch"/>
+
+<include file="$(find kinfu)/launch/kinfu.launch">
+  <arg name="new_window" value="true" />
+  <arg name="window_size" value="70x10+800+25"/>
+  <arg name="window_title" value="ros_kinfu"/>
+</include>
+
+<arg name="window_title" value="input_manager"/>
+<node pkg="input_manager" type="input_manager" name="input" launch-prefix="gnome-terminal --title=$(arg window_title) --geometry 70x10+800+495 --command"/>
+
+</launch>
+

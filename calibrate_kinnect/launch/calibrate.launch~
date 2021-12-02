@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+
+<!-- start freenect for the kinect -->
+<include file="$(find freenect_launch)/launch/freenect.launch"/>
+<include file="$(find freenect_launch)/launch/freenect.launch">
+	<arg name="new_window" value="true"/>
+</include>
+
+<!--camserv-->
+<node pkg="teleop_baxter" type="camserv" name = "camserv" launch-prefix="gnome-terminal --command"/>
+
+
+</launch>
+

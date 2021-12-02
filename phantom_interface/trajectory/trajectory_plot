@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+tj_vf = open("trajectory_w_vf.txt", "r")
+
+x_vf = []
+y_vf = []
+z_vf = []
+
+line_vf =  tj_vf.readline()
+while(line_vf != ""):
+    numbers = [float(s) for s in line_vf.split()]
+    x_vf.append(numbers[0])
+    y_vf.append(numbers[1])
+    z_vf.append(numbers[2])
+    line_vf =  tj_vf.readline()
+
+tj_vf.close()
+
+tj_raw = open("trajectory_wo_vf.txt", "r")
+
+x_raw = []
+y_raw = []
+z_raw = []
+
+line_raw =  tj_raw.readline()
+while(line_raw != ""):
+    numbers = [float(s) for s in line_raw.split()]
+    x_raw.append(numbers[0])
+    y_raw.append(numbers[1])
+    z_raw.append(numbers[2])
+    line_raw =  tj_raw.readline()
+
+tj_raw.close()
+
+fig = plt.figure()
+ax1 = fig.add_subplot(121, projection='3d')
+ax1.plot(x_vf,y_vf,z_vf)
+plt.xlim([-0.3,0.2])
+plt.ylim([-0.25,0.25])
+#plt.zlim([0.25,0.75])
+ax2 = fig.add_subplot(122, projection='3d')
+ax2.plot(x_raw,y_raw,z_raw)
+plt.show()

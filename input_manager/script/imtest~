@@ -1,0 +1,227 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+
+import rospy
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+from tf.broadcaster import TransformBroadcaster
+from tf import transformations
+
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import Point
+from std_msgs.msg import Bool
+
+from im_test import interactiveMarker
+from im_test import phantom_interface
+from im_test import wayPoint
+
+Mesh = interactiveMarker.interactiveMarker(name = "Mesh",
+                                        initial_pos = (0.3, 0.0, 0.5),
+                                        initial_ori = (0.0, 0.0, 0.0, 1.0),
+                                        offset_pos = (0.0, 0.0, 0.0),
+                                        offset_ori = (0.0, 0.0, 0.0, 1.0))
+Phantom = interactiveMarker.interactiveMarker(name = "Phantom",
+                                        initial_pos = (1.3, 0.0, 0.5),
+                                        initial_ori = (0.0, 0.0, 1.0, 0.0),
+                                        offset_pos = (0.0, 0.0, 0.0),
+                                        offset_ori = (0.5, 0.5, 0.5, 0.5))
+
+pInterface = phantom_interface.phantom_interface()
+wInterface = wayPoint.wayPoint_interface()
+
+def jointCallBack(msg):
+    pInterface.endPoint.position.x = msg.position.x
+    pInterface.endPoint.position.y = msg.position.y
+    pInterface.endPoint.position.z = msg.position.z
+    """
+    pInterface.endPoint.orientation.x = 1.0/math.sqrt(2) * (-msg.orientation.w + msg.orientation.x)
+    pInterface.endPoint.orientation.y = 1.0/math.sqrt(2) * (msg.orientation.z + msg.orientation.y)
+    pInterface.endPoint.orientation.z = 1.0/math.sqrt(2) * (-msg.orientation.y + msg.orientation.z)
+    pInterface.endPoint.orientation.w = 1.0/math.sqrt(2) * (msg.orientation.x + msg.orientation.w)
+    """    
+    pInterface.endPoint.orientation.x = 0.0
+    pInterface.endPoint.orientation.y = 1.0
+    pInterface.endPoint.orientation.z = 0.0
+    pInterface.endPoint.orientation.w = 0.0
+
+    cursor_phantom = [pInterface.endPoint.position.x, pInterface.endPoint.position.y, pInterface.endPoint.position.z, 0]
+
+    rot_mat = transformations.quaternion_matrix([Phantom.worldPose.orientation.x,
+                                                Phantom.worldPose.orientation.y,
+                                                Phantom.worldPose.orientation.z,
+                                                Phantom.worldPose.orientation.w])
+
+    cursor_world = numpy.dot(rot_mat,cursor_phantom)
+    pInterface.worldEndPoint.position.x = cursor_world[0]+Phantom.worldPose.position.x
+    pInterface.worldEndPoint.position.y = cursor_world[1]+Phantom.worldPose.position.y
+    pInterface.worldEndPoint.position.z = cursor_world[2]+Phantom.worldPose.position.z
+
+    pInterface.worldEndPoint.orientation.w = pInterface.endPoint.orientation.w * Phantom.worldPose.orientation.w\
+                            		- pInterface.endPoint.orientation.x * Phantom.worldPose.orientation.x\
+                            		- pInterface.endPoint.orientation.y * Phantom.worldPose.orientation.y\
+                            		- pInterface.endPoint.orientation.z * Phantom.worldPose.orientation.z
+
+    pInterface.worldEndPoint.orientation.x = pInterface.endPoint.orientation.w * Phantom.worldPose.orientation.x\
+                            		+ pInterface.endPoint.orientation.x * Phantom.worldPose.orientation.w\
+                            		- pInterface.endPoint.orientation.y * Phantom.worldPose.orientation.z\
+                            		+ pInterface.endPoint.orientation.z * Phantom.worldPose.orientation.y
+
+    pInterface.worldEndPoint.orientation.y = pInterface.endPoint.orientation.w * Phantom.worldPose.orientation.y\
+                            		+ pInterface.endPoint.orientation.x * Phantom.worldPose.orientation.z\
+                            		+ pInterface.endPoint.orientation.y * Phantom.worldPose.orientation.w\
+                            		- pInterface.endPoint.orientation.z * Phantom.worldPose.orientation.x
+
+    pInterface.worldEndPoint.orientation.z = pInterface.endPoint.orientation.w * Phantom.worldPose.orientation.z\
+                            		- pInterface.endPoint.orientation.x * Phantom.worldPose.orientation.y\
+                            		+ pInterface.endPoint.orientation.y * Phantom.worldPose.orientation.x\
+                            		+ pInterface.endPoint.orientation.z * Phantom.worldPose.orientation.w
+    
+    #pInterface.worldEndPoint.orientation.x = pInterface.endPoint.orientation.x
+    #pInterface.worldEndPoint.orientation.y = pInterface.endPoint.orientation.z
+    #pInterface.worldEndPoint.orientation.z = pInterface.endPoint.orientation.y
+    #pInterface.worldEndPoint.orientation.w = pInterface.endPoint.orientation.w
+    
+    
+def button1CallBack(msg):
+    pInterface.button1 = msg.data
+
+def button2CallBack(msg):
+    pInterface.button2 = msg.data
+
+def makeMesh():
+    marker = Marker()
+    marker.type = Marker.MESH_RESOURCE
+    marker.mesh_resource = "package://gl_test/bin/Mesh_bin.stl"
+    marker.scale.x = 1
+    marker.scale.y = 1
+    marker.scale.z = 1
+    marker.color.r = 0.5
+    marker.color.g = 0.5
+    marker.color.b = 0.5
+    marker.color.a = 0.5
+
+    return marker
+
+def makePhantomCenter():
+    marker = Marker()
+    marker.type = Marker.ARROW
+    marker.scale.x = 0.05       # arrow shaft diameter
+    marker.scale.y = 0.1        # arrow head diameter
+    marker.scale.z = 0.1        # arrow head length (0 = default)
+    marker.color.r = 0.0
+    marker.color.g = 0.0
+    marker.color.b = 0.0
+    marker.color.a = 0.3
+    marker.points.append(Point(0, 0, 0))
+    marker.points.append(Point(-0.2, 0, 0))
+    return marker
+
+if __name__=="__main__":
+    rospy.init_node("VF_marker")
+    
+    interactiveMarkerServer = InteractiveMarkerServer("im_server")
+    wayPointMarkerServer = InteractiveMarkerServer("wp_server")
+
+
+    # create an interactive marker server on the topic namespace "Mesh_marker"
+    meshMarker = makeMesh()
+    Mesh.make6DofMarker(marker = meshMarker,
+                        server = interactiveMarkerServer,
+                        fixed = False,
+                        xTrans = True,
+                        yTrans = True,
+                        zTrans = True,
+                        xRot = True,
+                        yRot = True,
+                        zRot = True)
+
+    # create an interactive marker server on the topic namespace "Phantom_marker" (center of phantom device)
+    phantomMarker = makePhantomCenter()
+    Phantom.make6DofMarker(marker = phantomMarker,
+                        server = interactiveMarkerServer,
+                        fixed = False,
+                        zRot = True,
+                        xTrans = True,
+                        yTrans = True,
+                        zTrans = True)
+
+    # update configured mesh marker
+    interactiveMarkerServer.applyChanges()
+
+    # create publisher for cursor marker (to rviz)
+    pub_cursor = rospy.Publisher('cursor', Marker, queue_size=10)
+    pub_path = rospy.Publisher('wayPointPath', Marker, queue_size=1)
+    pub_wayPoint = rospy.Publisher('wayPoint', PoseArray, queue_size=10)
+    pub_playback = rospy.Publisher('playback', Bool, queue_size=10)
+
+    # create subscriber for phantom cursor joint update
+    rospy.Subscriber('Phantom_joint_states', Pose, jointCallBack)
+    rospy.Subscriber('Phantom_button1', Bool, button1CallBack)
+    rospy.Subscriber('Phantom_button2', Bool, button2CallBack)
+   
+    tf_br = TransformBroadcaster()
+
+    rate = rospy.Rate(60.0)
+    button_block = False
+    while not rospy.is_shutdown():
+	
+        tf_br.sendTransform((Mesh.worldPose.position.x, Mesh.worldPose.position.y, Mesh.worldPose.position.z),
+                                (Mesh.worldPose.orientation.x, Mesh.worldPose.orientation.y, Mesh.worldPose.orientation.z, Mesh.worldPose.orientation.w),
+				rospy.Time.now(), 
+				"Mesh", "world") 
+
+        tf_br.sendTransform((Phantom.worldPose.position.x, Phantom.worldPose.position.y, Phantom.worldPose.position.z),
+                                (Phantom.worldPose.orientation.x, Phantom.worldPose.orientation.y, Phantom.worldPose.orientation.z, Phantom.worldPose.orientation.w),
+				rospy.Time.now(), 
+				"Phantom", "world") 
+
+	tf_br.sendTransform((0.145,0.042,0.97), (0.013, 0.273, -0.056, 0.960), rospy.Time.now(), "kinect1_link", "world")
+
+        wp_msg = PoseArray()
+        wp_msg.header.frame_id = "world"
+        for i in wInterface.interactiveMarkerList:
+            wp_msg.poses.append(i.pose)
+
+        pub_cursor.publish(pInterface.makeCursor())
+        pub_wayPoint.publish(wp_msg)
+
+	#print str(pInterface.button1) + "," + str(pInterface.button2)
+	if button_block:
+	    if not pInterface.button1|pInterface.button2:
+ 		pInterface.button2_save = False
+		button_block = False
+	else:
+	    if pInterface.button2:
+	        if ~pInterface.button2_save:
+	            # button2 down
+	            pInterface.button2_save = True
+	            print "button2 down"
+
+	        if pInterface.button1:
+		    playback_msg = Bool()
+		    playback_msg.data = True
+		    pub_playback.publish(playback_msg)
+		    button_block = True
+		    print "button1 down"
+		    print "playback start"
+
+	    else:
+	        if pInterface.button2_save:
+	            # button2. up
+	            pInterface.button2_save = False
+	            wInterface.generateNewWayPoint(server = wayPointMarkerServer,
+	                                                pose = pInterface.worldEndPoint)
+		    #print str(pInterface.worldEndPoint.orientation.x)+", "\
+		    #	    +str(pInterface.worldEndPoint.orientation.y)+", "\
+		    #	    +str(pInterface.worldEndPoint.orientation.z)+", "
+		    #	    +str(pInterface.worldEndPoint.orientation.w)
+	            wayPointMarkerServer.applyChanges()
+		    pub_path.publish(wInterface.makePath())
+
+	            print "button2 up"
+
+        rate.sleep()
+    #rospy.spin()

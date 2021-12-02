@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+
+
+import rospy
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+from tf.broadcaster import TransformBroadcaster
+
+
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import Point
+from std_msgs.msg import Bool
+
+from rviz_controller import transformations as trans
+from rviz_controller import generate_object
+from rviz_controller import phantom_interface
+
+pInterface = phantom_interface.phantom_interface()
+
+def phtmCoordinateSync(pos):
+	rot1 = trans.quaternion_about_axis(-math.pi/2,[0,1,0])
+	rot2 = trans.quaternion_about_axis(math.pi/2,[1,0,0])
+	ori = trans.quaternion_multiply(rot2,trans.quaternion_multiply(rot1,[1,0,0,0]))
+	res_pos = trans.quaternion_multiply(ori,trans.quaternion_multiply([0, pos.x, pos.y, pos.z],trans.quaternion_conjugate(ori)))
+	res_pos = res_pos[1:]
+	return res_pos
+
+def jointCallBack(msg):
+	sync_pos = phtmCoordinateSync(msg.position)
+	
+	pInterface.cs_pose_phtm.position.x = sync_pos[0]
+	pInterface.cs_pose_phtm.position.y = sync_pos[1]
+	pInterface.cs_pose_phtm.position.z = sync_pos[2]
+ 	
+	pInterface.cs_pose_phtm.orientation.x = 0.0
+	pInterface.cs_pose_phtm.orientation.y = 0.0
+	pInterface.cs_pose_phtm.orientation.z = 0.0
+	pInterface.cs_pose_phtm.orientation.w = 1.0
+	
+	pInterface.cs_pose_world = pInterface.phtm2world(pInterface.cs_pose_phtm)	
+
+def button1CallBack(msg):
+    pInterface.button1 = msg.data
+
+def button2CallBack(msg):
+    pInterface.button2 = msg.data
+
+def makePhantomCenter():
+    marker = Marker()
+    marker.type = Marker.ARROW
+    marker.scale.x = 0.05       # arrow shaft diameter
+    marker.scale.y = 0.1        # arrow head diameter
+    marker.scale.z = 0.1        # arrow head length (0 = default)
+    marker.color.r = 0.0
+    marker.color.g = 0.0
+    marker.color.b = 0.0
+    marker.color.a = 0.3
+    marker.points.append(Point(0, 0, 0))
+    marker.points.append(Point(-0.2, 0, 0))
+    return marker
+
+if __name__=="__main__":
+	rospy.init_node("VF_marker")
+	a = 1
+	command_queue = generate_object.point_queue()
+	obj_manager = generate_object.rviz_object_manager()
+
+	# create publisher for cursor marker (to rviz)
+	pub_cursor = rospy.Publisher('cursor', Marker, queue_size=10)
+	pub_cursor_point = rospy.Publisher('cursor_point', Marker, queue_size=10)
+
+	# create subscriber for phantom cursor joint update
+	rospy.Subscriber('Phantom_joint_states', Pose, jointCallBack)
+	rospy.Subscriber('Phantom_button1', Bool, button1CallBack)
+	rospy.Subscriber('Phantom_button2', Bool, button2CallBack)
+
+	tf_br = TransformBroadcaster()
+
+	rate = rospy.Rate(60.0)
+	button_block = False
+	num_obj = 0
+	while not rospy.is_shutdown():
+		
+		tf_br.sendTransform((pInterface.tf_phtm.position.x, pInterface.tf_phtm.position.y, pInterface.tf_phtm.position.z),
+							(pInterface.tf_phtm.orientation.x, pInterface.tf_phtm.orientation.y, pInterface.tf_phtm.orientation.z, pInterface.tf_phtm.orientation.w),
+							rospy.Time.now(), 
+							"phantom", "world") 
+
+		tf_br.sendTransform((0.145,0.042,0.97), (0.013, 0.273, -0.056, 0.960), rospy.Time.now(), "kinect1_link", "world")
+		
+		pub_cursor.publish(pInterface.moveCursor())
+
+		bState = pInterface.buttonState()
+		if bState == "btn2up":
+			command_queue.add(pInterface.cs_pose_world)
+			pub_cursor.publish(pInterface.addPoint(pInterface.cs_pose_world))
+			
+			if len(command_queue.list) > 2: 
+				obj_manager.draw_circle(num_obj, command_queue.list[0], command_queue.list[1], command_queue.list[2])
+				num_obj = num_obj+1
+				if(num_obj>3): num_obj = 0
+				command_queue.list = []
+		
+		#if bState == "btn1up":			
+
+
+		if bState == "btnsup":
+			pub_cursor.publish(pInterface.clearPoints())
+			
+		rate.sleep()
+		rospy.spin()

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="rviz" default="true"/>
+  <arg name="oculus" default="false"/>
+  <arg name="window_size" default="0x0+0+0"/>
+  <arg name="window_title" default="rviz_controller"/>
+  <group if="$(arg rviz)">
+    <node name="rviz" args="-d $(find rviz_controller)/rviz/demo.rviz" pkg="rviz" type="rviz" output="screen"/>
+  </group>
+  <group if="$(arg oculus)">
+    <node name="rviz_con" pkg="rviz_controller" type="rviz_controller" output="screen" launch-prefix="gnome-terminal --title=$(arg window_title) --geometry $(arg window_size) --command"/>
+  </group>
+  <group unless="$(arg oculus)">
+	<node name="rviz_con" pkg="rviz_controller" type="rviz_controller_wo_oculus" output="screen" launch-prefix="gnome-terminal --title=$(arg window_title) --geometry $(arg window_size) --command"/>
+  </group>
+</launch>

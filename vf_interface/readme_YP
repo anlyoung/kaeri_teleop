@@ -1,0 +1,10 @@
+vf_interface package includes 1 node:
+
+	vf_interface
+
+
+vf_interface node requires custom classes in src folder:
+	
+	command_interface.py - functions related to commands (from phantom omni or keyboard) to manage virtual fixtures
+	generate_object.py - functions to calculate virtual fixture virtices, faces and delete or move them
+	transformations.py - downloaded from internet, functions related to quaternion calculation, transformation matrix and etc.

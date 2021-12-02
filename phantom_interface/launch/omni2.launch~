@@ -1,0 +1,21 @@
+<launch>
+<include file="$(find freenect_launch)/launch/freenect.launch">
+    <arg name="camera" value="kinect1" />
+  </include>
+
+<node pkg="baxter_tools" type="tuck_arm.py" name="untuck" output="screen" args="-u"/>
+
+<node pkg="omni_test" type="omni_pub" name="phantom_pub" output="screen"/>
+
+<node pkg="im_test" type="imtest" name="rviz_marker" output="screen"/>
+
+<node pkg="baxter_ik_solver" type="ik_solver.py" name="iksolver" output="screen" launch-prefix="gnome-terminal --command"/>
+
+<node pkg="kinfu" type="kinfu" name="kinect_kinfu1" output="screen" launch-prefix="gnome-terminal --command">
+    <param name="prefix_topic" value="/kinect1" />
+    <param name="autostart" value="true" />
+    <param name="response_topic" value="/kinfu1_response_topic" />
+    <param name="request_topic" value="/kinfu1_request_topic" />
+    <param name="extract_known_points" value="true" />
+  </node>
+</launch>

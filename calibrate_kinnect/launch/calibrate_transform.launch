@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+
+    <!--calibrate_transform-->
+    <node pkg="calibrate_kinnect" name="cam_calibration_transform.py" type="cam_calibration_transform.py" output="screen">
+
+
+</launch>
+

@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+
+import struct
+import sys
+import threading
+import Queue
+import math
+import numpy as np
+
+# ROS
+import rospy
+import tf
+
+from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
+from std_msgs.msg import Header
+from std_msgs.msg import String
+from visualization_msgs.msg import Marker
+
+# custom
+from ik_solver import ik_solver
+from ik_solver import transformations as trans
+
+bxtC_l = ik_solver.baxter_controller('left')
+move = False
+endEffectorPose = Pose()
+sensorTrajectoryRadius = 0.5				# radius of RGBD sensor trajectory 
+
+
+def endEffectorPoseCallBack(msg):
+	global endEffectorPose
+	endEffectorPose = msg
+
+  
+def buttonCallBack(msg):
+	global move
+	if (msg.data == "btn1down") | (msg.data == "btn1drag"):
+		move = True
+	else: 
+		move = False
+
+	
+if __name__ == '__main__':
+	# init ROS node
+	rospy.init_node("ik_solver")
+
+	# create subscriber end effect position
+	rospy.Subscriber('Phantom_joint_states', Pose, endEffectorPoseCallBack)
+	rospy.Subscriber('Phantom_button_state', String, buttonCallBack)
+
+	# create publisher for command point marker
+	pub_command_left = rospy.Publisher('command_left', Marker, queue_size=1)
+
+	marker_left = Marker()
+	marker_left.header.frame_id = "world"
+	marker_left.ns = "command_point_left"
+	marker_left.id = 1;
+	marker_left.type = Marker.SPHERE
+	marker_left.action = Marker.ADD
+	marker_left.scale.x = 0.1
+	marker_left.scale.y = 0.1
+	marker_left.scale.z = 0.1
+	marker_left.color.a = 1.0
+
+	rate = rospy.Rate(10.0)
+	while not rospy.is_shutdown():
+		#print(move)
+		if move:
+			hdr = Header(stamp=rospy.Time.now(), frame_id='base')
+			baxter_effector_pose_left = PoseStamped(header=hdr, pose = endEffectorPose)
+			color_left = bxtC_l.inverse_kinematics(baxter_effector_pose_left)
+			if color_left:
+				marker_left.color.r = 0
+				marker_left.color.g = 1
+				marker_left.color.b = 0
+			else:
+				marker_left.color.r = 1
+				marker_left.color.g = 0
+				marker_left.color.b = 0
+			marker_left.pose = endEffectorPose
+			pub_command_left.publish(marker_left)
+
+		rate.sleep()
+

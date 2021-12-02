@@ -1,0 +1,8 @@
+baxter_custom_urdf package does not include any node.
+
+
+baxter_custom_urdf package has launch files that execute send_urdf_fragment.py node in baxter_examples package.
+send_urdf_fragment.py read xacro files in urdf folder of baxter_custom_urdf package and send it to baxter robot.
+xacro files can utilze binary STL files (in meshes folder) as their robot model. 
+
+

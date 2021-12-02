@@ -1,0 +1,9 @@
+<launch>
+<node pkg="omni_test" type="omni_pub" name="phantom_pub" output="screen"/>
+
+<node pkg="omni_test" type="omni_test" name="phantom_dev" output="screen" launch-prefix="gnome-terminal --command"/>
+
+<node pkg="im_test" type="imtest" name="rviz_marker" output="screen"/>
+
+<node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d ANL.rviz"/>
+</launch>

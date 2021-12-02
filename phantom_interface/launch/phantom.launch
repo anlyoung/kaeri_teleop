@@ -1,0 +1,4 @@
+<launch>
+<node pkg="phantom_interface" type="phantom" name="phtm_main" output="screen"/>
+<node pkg="phantom_interface" type="mesh_pub" name="phtm_pub" output="screen"/>
+</launch>

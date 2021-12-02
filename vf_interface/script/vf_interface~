@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+
+import math
+import numpy
+import numpy as np
+
+
+import rospy
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+from tf.broadcaster import TransformBroadcaster
+import tf
+
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
+from std_msgs.msg import Bool
+from std_msgs.msg import String
+from std_msgs.msg import Float32MultiArray
+from geometry_msgs.msg import PoseArray
+from shape_msgs.msg import Mesh
+
+from modules import command_interface
+
+cInterface = command_interface.command_interface()
+
+def jointCallBack(msg):
+	cInterface.cs_pose_world.position.x = msg.position.x
+	cInterface.cs_pose_world.position.y = msg.position.y
+	cInterface.cs_pose_world.position.z = msg.position.z	
+
+	cInterface.cs_pose_world.orientation.x = msg.orientation.x
+	cInterface.cs_pose_world.orientation.y = msg.orientation.y
+	cInterface.cs_pose_world.orientation.z = msg.orientation.z
+	cInterface.cs_pose_world.orientation.w = msg.orientation.w
+
+
+def buttonCallBack(msg):
+	cInterface.execute_command(msg.data)
+
+
+def touchCallBack(msg):
+	cInterface.phtm_touched = msg.data
+
+
+def teleopModeCallBack(msg):
+	cInterface.mode = msg.data
+	
+
+def vfActionCallBack(msg):
+	cInterface.vf_action(msg.data)
+
+
+if __name__=="__main__":
+	rospy.init_node("rviz_controller")
+
+	# create publishers 
+	pub_vf_mesh = rospy.Publisher('vf_objects', MarkerArray, queue_size=1)
+	pub_vf_real_time = rospy.Publisher('vf_real_time', MarkerArray, queue_size=1)
+	
+	
+	pub_vtx = rospy.Publisher('/VTX', PoseArray, queue_size = 1)
+	pub_fc = rospy.Publisher('/FC', PoseArray, queue_size = 1)
+
+	pub_mesh = rospy.Publisher('/MESH', Mesh, queue_size = 1)
+
+	# create subscribers
+	rospy.Subscriber('Phantom_joint_states', Pose, jointCallBack)
+	rospy.Subscriber('Phantom_button_state', String, buttonCallBack)
+	rospy.Subscriber('Phantom_touch_state', Bool, touchCallBack)	
+
+	rospy.Subscriber('teleop_mode', String, teleopModeCallBack) 
+	rospy.Subscriber('vf_action', String, vfActionCallBack) 
+
+	# main loop
+	rate = rospy.Rate(30.0)
+
+	#i = 0
+	while not rospy.is_shutdown():
+		# real time mesh visualization update
+		pub_vf_real_time.publish(cInterface.real_time_update())
+
+		# object update
+		pub_vf_mesh.publish(cInterface.obj_manager.markerArray)
+
+		VTX_Array = PoseArray()
+		FC_Array = PoseArray()
+		MESH_Array = Mesh()
+
+		for i in range (0,len(cInterface.obj_manager.object_list)):
+			vtx = np.transpose(cInterface.obj_manager.object_list[i].vertex)
+			fc = np.transpose(cInterface.obj_manager.object_list[i].face)
+
+			mesh_points = Points()
+			for a in range(0, len(vtx)):
+				vtx_pos = Pose()
+				
+				p = Point()
+
+				p.x = vtx[a][0]
+				p.y = vtx[a][1]
+				p.z = vtx[a][2]
+
+				vtx_pos.position = p
+
+				vtx_pos.orientation.x = 0.0
+				vtx_pos.orientation.y = 0.0
+				vtx_pos.orientation.z = 0.0
+
+				VTX_Array.poses.append(vtx_pos)
+				MESH_Array.vertices.append(p)
+
+			for ii,face in enumerate(fc):
+				
+				indices = Pose()
+				index = Point()
+
+				index.x = face[0]
+				index.y = face[1]
+				index.z = face[2]
+
+				indices.position = p
+
+				indices.orientation.x = 0.0
+				indices.orientation.y = 0.0
+				indices.orientation.z = 0.0
+
+				FC_Array.poses.append(indices)
+
+				triangle = MeshTriangle()
+				triangle.vertex_indices = [face[0], face[1], face[2]]
+
+				MESH_Array.triangles.append(triangle)
+			# for ii,f in enumerate(fc):
+			# 	for j in range(3):
+			# 		pos = Pose()
+			# 		p = Point()
+			# 		p.x = vtx[f[j],0]
+			# 		p.y = vtx[f[j],1]
+			# 		p.z = vtx[f[j],2]
+			# 		Pose.position = p
+
+					#print(p)
+					#print ('------------------')
+					
+			# for x in range (0,len(cInterface.obj_manager.object_list[i])):
+			# 	print ("Number of Vertex: " + "{}".format( len(cInterface.obj_manager.object_list[i].vertex[x])))
+			# 	print (cInterface.obj_manager.object_list[i].vertex[x])
+			# 	print ("Number of Faces: " + "{}".format( len(cInterface.obj_manager.object_list[i].face[x])))
+			# 	print(cInterface.obj_manager.object_list[i].face[x])
+
+
+		pub_vtx.publish(VTX_Array)
+		pub_fc.publish(FC_Array)
+		pub_mesh.publish(MESH_Array)
+
+		rate.sleep()

@@ -1,0 +1,4 @@
+0.37959071987, -0.138658724765, 0.169029123848,
+0.227340484203, 0.659511081825, 0.188060557487, 0.691371581648,
+# position x, position y, position z
+# orientation x, orientation y,orientation z,orientation w,

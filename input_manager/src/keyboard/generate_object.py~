@@ -1,0 +1,197 @@
+#!/usr/bin/env python
+
+import math
+import numpy as np
+import stl
+import transformations as trans
+from stl import mesh
+
+from visualization_msgs.msg import *
+from interactive_markers.interactive_marker_server import *
+from geometry_msgs.msg import Pose
+
+class point_queue:
+	def __init__(self):
+		self.list = []
+
+	def add(self, pose):
+		pt = np.array([pose.position.x, pose.position.y, pose.position.z])
+		self.list.append(pt)
+
+class rviz_object:
+	def __init__(self, object_id, vtx, face, norm):
+		self.id = object_id
+		self.vertex = np.copy(vtx)
+		self.face = np.copy(face)
+		self.norm = np.copy(norm)
+		
+		# reference point for scale change
+		self.reference = np.zeros((3,1))
+		for i in range(3): self.reference[i] = np.average(self.vertex[:,i])
+
+class rviz_object_manager:
+	def __init__(self):
+		self.object_list = []
+		self.show_list = []
+	
+		self.server = InteractiveMarkerServer("object_server")
+
+	def make_STL(self, rviz_obj, path = 'src/rviz_controller/src/rviz_controller/objects/'):
+		filename_bin = path + "bin_%d" %rviz_obj.id + '.stl'
+		filename_ascii = path + "ascii_%d" %rviz_obj.id + '.stl'
+		vertex = np.transpose(rviz_obj.vertex)
+		face = np.transpose(rviz_obj.face)
+		face_permute = np.transpose([face[:,0], face[:,2], face[:,1]])
+		face = np.concatenate((face, face_permute), axis=0)
+		
+		stl_mesh = mesh.Mesh(np.zeros(face.shape[0], dtype=mesh.Mesh.dtype))
+		#print(face.shape)
+		#print(face)
+		#print(stl_mesh.vectors.shape)
+		for i, f in enumerate(face):
+			for j in range(3):
+				stl_mesh.vectors[i][j] = vertex[f[j],:]
+
+		# Write the mesh to file "cube.stl"
+		#print(filename_bin)
+		stl_mesh.save(filename_bin, mode=stl.Mode.BINARY)
+		stl_mesh.save(filename_ascii, mode=stl.Mode.ASCII)	
+		print("stl saved")	
+
+	def create_marker(self, rviz_obj):
+		int_marker = InteractiveMarker()
+		int_marker.header.frame_id = "world"
+		int_marker.name = "%d" %rviz_obj.id
+
+		if self.server.get(int_marker.name): 
+			print('delete')
+			control = InteractiveMarkerControl()
+			control.always_visible = True
+			control.interaction_mode = InteractiveMarkerControl.NONE
+			control.markers.append(self.delete_object_marker(rviz_obj))
+			int_marker.controls.append(control);
+			self.server.insert(int_marker)
+			self.server.applyChanges()
+			self.server.clear()	
+			self.server.applyChanges()
+		else:
+			print('add')
+			control = InteractiveMarkerControl()
+			control.always_visible = True
+			control.interaction_mode = InteractiveMarkerControl.NONE
+			control.markers.append(self.make_object_marker(rviz_obj))
+			int_marker.controls.append(control);
+			self.server.insert(int_marker)
+			self.server.applyChanges()
+
+	def make_object_marker(self, rviz_obj):
+		marker = Marker()
+		marker.header.frame_id = "world"
+		marker.ns = "object"
+		marker.id = rviz_obj.id
+		print(marker.id)		
+
+		marker.type = Marker.MESH_RESOURCE
+		marker.mesh_resource = "package://rviz_controller/src/rviz_controller/objects/" + "bin_%d" %rviz_obj.id + ".stl"
+		marker.action = Marker.ADD
+		marker.scale.x = 1
+		marker.scale.y = 1
+		marker.scale.z = 1
+		marker.color.r = 0.5
+		marker.color.g = 0.5
+		marker.color.b = 0.5
+		marker.color.a = 0.5
+		
+		marker.pose = Pose()
+		marker.pose.orientation.w = 1
+		
+		rviz_obj.id = rviz_obj.id+1
+		return marker
+
+	def delete_object_marker(self, rviz_obj):
+		marker = Marker()
+		marker.header.frame_id = "world"
+		marker.ns = "object"
+		marker.id = rviz_obj.id
+
+		marker.type = Marker.MESH_RESOURCE
+		marker.mesh_resource = "package://rviz_controller/src/rviz_controller/objects/" + "bin_%d" %rviz_obj.id + ".stl"
+		marker.action = Marker.DELETE
+		marker.scale.x = 1
+		marker.scale.y = 1
+		marker.scale.z = 1
+		marker.color.r = 0.5
+		marker.color.g = 0.5
+		marker.color.b = 0.5
+		marker.color.a = 0.5
+
+		return marker
+
+	def draw_circle(self, object_id, center, point1, point2, nvtx = 20, show = True):
+		r = np.linalg.norm(point1-center)
+		x1 = point1-center
+		x2 = point2-center
+		norm = np.cross(x1, x2)
+		print(norm)
+		norm = norm/np.linalg.norm(norm)
+		print(norm)
+		# generate vertex and face on x-y plane
+		vertex = np.zeros((3,nvtx+1))
+		face = np.zeros((3,nvtx))
+		face[0,:] = np.zeros((1,nvtx))
+		for i in range(nvtx):
+			vertex[0,i+1] = r*math.cos(2*math.pi/nvtx*i)
+			vertex[1,i+1] = r*math.sin(2*math.pi/nvtx*i)
+			vertex[2,i+1] = 0
+			if i == nvtx-1:			# faces (center, i, i+1)
+				face[1,i] = nvtx
+				face[2,i] = 1
+				
+			else:					# last face (center, nvtx, 1)
+				face[1,i] = i+1
+				face[2,i] = i+2	
+
+		# add a row of 1s for rotation matrix multiply				
+		vertex = np.vstack((vertex, np.ones((1,nvtx+1))))
+		#print(vertex)
+		# calculate rotation matrix
+		axis = np.cross(norm,np.array([0,0,1]))
+		
+		ang_mat = np.array([axis,norm,np.array([0,0,1])])
+		print(ang_mat)
+		if np.linalg.det(ang_mat) > 0:
+			angle = np.arccos(np.dot(norm,np.array([0,0,1])))
+		else:
+			angle = -np.acos(np.dot(norm,np.array([0,0,1])))
+		
+		quaternion = trans.quaternion_about_axis(angle,axis)
+		rotation = trans.quaternion_matrix(quaternion)
+	
+		# transform
+		vertex = np.dot(rotation,vertex)
+		vertex = vertex[:3,:]
+		vertex = vertex + np.array([center[0]*np.ones(vertex.shape[1]),center[1]*np.ones(vertex.shape[1]),center[2]*np.ones(vertex.shape[1])])
+		
+		# generate normals of each face
+		normal = np.tile(norm,(1,nvtx))
+	
+		# generate object
+		circle = rviz_object(object_id, vertex, face, normal)
+
+		# make STL file
+		self.make_STL(circle)
+
+		# enlist object
+		self.object_list.append(circle)
+		if show: self.create_marker(circle)
+	
+
+
+
+
+		
+
+		
+
+
+

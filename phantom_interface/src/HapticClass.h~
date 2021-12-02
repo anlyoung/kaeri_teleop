@@ -1,0 +1,120 @@
+#ifndef _HAPTIC_CLASS_
+#define _HAPTIC_CLASS_
+
+#define NOMINMAX
+
+#include <iostream>
+
+#include <HL/hl.h>
+#include <HD/hd.h>
+
+#include <HDU/hduMatrix.h>
+#include <HDU/hduError.h>
+#include <HDU/hduPlane.h>
+#include <HDU/hduQuaternion.h>
+
+#include <HLU/hlu.h>
+
+#include "teleop_baxter/RosClass.h"
+
+//dc 
+#include <vector>
+#include <cstdlib>
+#include <sys/timeb.h>
+
+class RosClass;
+
+using namespace std;
+
+struct OmniState {
+    HLdouble position[3];
+    HLdouble scale;
+
+    HLboolean button1;
+    HLboolean button2;
+};
+
+class HapticClass
+{
+	public:
+ 
+        HapticClass(OmniState *s);
+        ~HapticClass();
+
+
+        void exit();
+
+        std_msgs::Bool getButton2State();
+        hduMatrix getHapticOffsetMatrix();
+        hduMatrix getInverseHapticOffsetMatrix();
+        void setHapticOffsetMatrices(hduMatrix mtx);
+
+        void startCustomEffect();
+
+        hduVector3Dd computeCollisionPlaneEffect(hduVector3Dd proxyPosition);
+
+        void setRosClassPtr(RosClass *ptr) { myRos = ptr;}
+
+        hduMatrix getProxyTransform();
+        hduMatrix getDeviceTransform();
+
+        HLuint virtualFixtureId;
+
+	void writeFile(char* fileName);
+	void writeFile2(char* fileName, void *userdata, HLdouble a[]);
+
+    private:
+        /* Haptic device and rendering context handles. */
+	OmniState *state; 	
+	
+        HHD ghHD;
+        HHLRC ghHLRC;
+
+        HLuint effectId;
+
+        RosClass *myRos = NULL;
+
+        bool collisionPlaneEnabled = false;
+
+        hduPlane<HDdouble> collisionPlane;
+        HDdouble planeStiffness = 1.0;
+
+        hduMatrix hapticOffset;
+        hduMatrix hapticOffsetInverse;
+
+        hduMatrix proxyTransform;
+        hduMatrix deviceTransform;
+
+        static void HLCALLBACK motionCallback(HLenum event, HLuint object, HLenum thread, HLcache *cache, void *userdata);
+        static void HLCALLBACK buttonCallback(HLenum event, HLuint object, HLenum thread, HLcache *cache, void *userdata);
+
+        // custom force effect
+        static void HLCALLBACK computeEffect(hduVector3Dd &force, HLcache *cache, void *userdata);
+
+        void moveRightEP2Proxy();
+
+	// Daniel Added for Performance Metrics
+	static int incTime,incTime1,incTime2,incTime3,incTime4;
+
+	//for the metrics
+	long *counter_start;
+	long *counter_end;
+	long *f;
+
+	bool startTiming;
+	//vector<float> contactDuration;
+	float totalDuration;
+	float maxForce;	
+	float avrForce;
+	//bool contact;
+	
+        //int contactTimes;
+	//int forceTicks;
+	//float accumForce, accumForceSqr;
+
+	//FILE *reportFile2;
+	//int getMilliCount();
+	//int getMilliSpan(int nTimeStart);
+};
+
+#endif _HAPTIC_CLASS_

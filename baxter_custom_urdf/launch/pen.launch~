@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="baxter_examples" type="send_urdf_fragment.py" name="custom_end_effector" args="-f $(find baxter_custom_urdf)/urdf/custom_end_effector.urdf.xacro -l right_hand -j right_gripper_base" />
+</launch>

@@ -1,0 +1,9 @@
+
+
+import stl
+from stl import mesh
+import numpy 
+
+your_mesh = mesh.Mesh.from_file('xtion.STL')
+
+your_mesh.save('xtion2.STL',mode=stl.Mode.BINARY)

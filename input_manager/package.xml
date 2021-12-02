@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <name>input_manager</name>
+  <version>1.0.0</version>
+  <description>input_manager</description>
+
+  <maintainer email="leed@anl.gov">Donghyeon Lee</maintainer>
+
+  <license>BSD</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>baxter_examples</build_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>baxter_examples</run_depend>
+</package>

@@ -1,0 +1,7 @@
+<launch>
+
+<include file="$(find baxter_gazebo)/launch/baxter_world.launch"/>
+<include file="$(find teleop)/launch/laptops/dell_precision.launch"/>
+<include file="$(find teleop)/launch/laptops/sim_teleop.launch"/>
+
+</launch>

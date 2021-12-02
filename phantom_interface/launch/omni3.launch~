@@ -1,0 +1,26 @@
+<launch>
+<include file="$(find baxter_moveit_config)/launch/demo_baxter.launch"/>
+
+<node pkg="baxter_tools" type="tuck_arms.py" name="untuck" output="screen" args="-u"/>
+<node pkg="baxter_interface" type="joint_trajectory_action_server.py" name="baxter" output="screen"/>
+
+<node pkg="moveit_test" type="move_group" name="moveit" output="screen"/>
+
+<node pkg="omni_test" type="omni_test" name="phantom" output="screen"/>
+<node pkg="omni_test" type="omni_pub" name="phantom_pub" output="screen"/>
+
+<node pkg="im_test" type="imtest" name="rviz_marker" output="screen"/>
+
+<include file="$(find freenect_launch)/launch/freenect.launch">
+    <arg name="camera" value="kinect1" />
+  </include>
+
+<node pkg="kinfu" type="kinfu" name="kinect_kinfu1" output="screen" launch-prefix="gnome-terminal --command">
+    <param name="prefix_topic" value="/kinect1" />
+    <param name="autostart" value="true" />
+    <param name="response_topic" value="/kinfu1_response_topic" />
+    <param name="request_topic" value="/kinfu1_request_topic" />
+    <param name="extract_known_points" value="true" />
+  </node>
+
+</launch>

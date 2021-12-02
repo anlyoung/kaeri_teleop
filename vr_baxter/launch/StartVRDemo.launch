@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+<!--baxter untuck arms-->
+<!--<node pkg="baxter_tools" type="tuck_arms.py" name="untuck_arm" output="screen" args="-u"/>-->
+
+<include file="$(find kinfu)/launch/kinect_single.launch"/>
+
+<include file="$(find file_server)/launch/publish_description_baxter.launch"/>
+
+<!--Arm Control-->
+<node pkg="VR_Baxter" type="UnityController.py" name="Left Controller" launch-prefix="gnome-terminal --command"/>
+<node pkg="VR_Baxter" type="UnityControllerRight.py" name="Right Controller" launch-prefix="gnome-terminal --command"/>
+
+<node pkg="VR_Baxter" type="EuclideanExtraction" name="input" launch-prefix="gnome-terminal --command"/>
+
+
+</launch>
