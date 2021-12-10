@@ -11,11 +11,17 @@ Create a workspace for the project:
 
 cd catkin_ws/src
 git clone https://github.com/anlyoung/kaeri_teleop.git
-```
+
+cd catkin_ws/
+catkin_make
+
 ## Run
 Running scripts are in src/launchshell directory.
 1) augmented teleoperation
 `RunTeleopDemo.sh`
+
+1-1) to run augmented teleoperation with simulated baxter robot
+`roslaunch teleop single_pc_simulation.launch`
 
 2) augmented teleautonomy
 `Link_to_Run_vr_baxter_GUI.sh`
