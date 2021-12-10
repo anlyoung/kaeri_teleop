@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="pbdlib_manager" type="pbdlibSimpleDemo" name="pbdlib_simple_demo" output="screen"/>
+    <node pkg="pbdlib_manager" type="trajgmm_ik_sawyer.py" name="pbdlib_sawyer_ik" output="screen"/>
+</launch>

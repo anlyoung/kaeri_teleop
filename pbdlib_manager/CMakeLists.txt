@@ -1,0 +1,380 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(pbdlib_manager)
+
+INCLUDE(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+IF(COMPILER_SUPPORTS_CXX11)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
+ELSEIF(COMPILER_SUPPORTS_CXX0X)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+ELSE()
+    MESSAGE(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+ENDIF()
+
+FIND_PACKAGE(Armadillo 5.4 REQUIRED)
+SET(CMAKE_MAJOR_VERSION 1)
+SET(CMAKE_MINOR_VERSION 0)
+SET(CMAKE_PATCH_VERSION 0)
+
+INCLUDE_DIRECTORIES(include)
+INCLUDE_DIRECTORIES(${ARMADILLO_INCLUDE_DIRS})
+
+## Compile as C++11, supported in ROS Kinetic and newer
+# add_compile_options(-std=c++11)
+
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  message_generation
+  baxter_core_msgs
+  std_msgs  
+  roslib
+)
+find_package(Armadillo 5.4 REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+
+include_directories(include ${ARMADILLO_INCLUDE_DIRS})
+
+ADD_LIBRARY(pbd
+		src/datapoints.cpp
+		src/demonstration.cpp
+		src/tpdemonstration.cpp
+		src/taskparameters.cpp
+		src/mvn.cpp
+		src/gmm.cpp
+		src/gmr.cpp
+		src/tpgmm.cpp
+		src/lqr.cpp
+		src/hmm.cpp
+		src/hsmm.cpp
+		src/adhsmm.cpp
+		src/quaternion.cpp
+		src/trajgmm.cpp
+		src/mpc.cpp
+		src/trajMPC.cpp
+		src/tphsmm.cpp
+		src/tpdpgmm.cpp
+		src/trajdist.cpp
+)
+
+## System dependencies are found with CMake's conventions
+# find_package(Boost REQUIRED COMPONENTS system)
+
+
+## Uncomment this if the package has a setup.py. This macro ensures
+## modules and global scripts declared therein get installed
+## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+# catkin_python_setup()
+
+################################################
+## Declare ROS messages, services and actions ##
+################################################
+
+## To declare and build messages, services or actions from within this
+## package, follow these steps:
+## * Let MSG_DEP_SET be the set of packages whose message types you use in
+##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
+## * In the file package.xml:
+##   * add a build_depend tag for "message_generation"
+##   * add a build_depend and a exec_depend tag for each package in MSG_DEP_SET
+##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
+##     but can be declared for certainty nonetheless:
+##     * add a exec_depend tag for "message_runtime"
+## * In this file (CMakeLists.txt):
+##   * add "message_generation" and every package in MSG_DEP_SET to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * add "message_runtime" and every package in MSG_DEP_SET to
+##     catkin_package(CATKIN_DEPENDS ...)
+##   * uncomment the add_*_files sections below as needed
+##     and list every .msg/.srv/.action file to be processed
+##   * uncomment the generate_messages entry below
+##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
+
+## Generate messages in the 'msg' folder
+# add_message_files(
+#	DIRECTORY msg
+#        FILES 
+#        PoseNameArray.msg
+#)
+
+## Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
+
+## Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
+
+ #Generate added messages and services with any dependencies listed here
+  generate_messages(
+    DEPENDENCIES
+    std_msgs  # Or other packages containing msgs
+    geometry_msgs
+)
+
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+################################################
+
+## To declare and build dynamic reconfigure parameters within this
+## package, follow these steps:
+## * In the file package.xml:
+##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
+## * In this file (CMakeLists.txt):
+##   * add "dynamic_reconfigure" to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * uncomment the "generate_dynamic_reconfigure_options" section below
+##     and list every .cfg file to be processed
+
+## Generate dynamic reconfigure parameters in the 'cfg' folder
+# generate_dynamic_reconfigure_options(
+#   cfg/DynReconf1.cfg
+#   cfg/DynReconf2.cfg
+# )
+
+###################################
+## catkin specific configuration ##
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## INCLUDE_DIRS: uncomment this if your package contains header files
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+catkin_package(
+  INCLUDE_DIRS include
+#  LIBRARIES pbdlib_manager
+	CATKIN_DEPENDS 
+	roscpp
+	roslib
+	CATKIN_DEPENDS message_runtime
+#  DEPENDS system_lib
+)
+
+# Setup the include directories
+include_directories(
+	${PROJECT_SOURCE_DIR}/include/
+	${PROJECT_SOURCE_DIR}/include/arpack-arma/include
+	${ARMADILLO_INCLUDE_DIRS}
+)
+
+
+# Declare the support files needed for OpenGL2 demos
+#set(GL2_SUPPORT_SOURCES
+#	${PROJECT_SOURCE_DIR}/src/utils/imgui_impl_glfw_gl2.cpp
+#	${PROJECT_SOURCE_DIR}/src/utils/imgui.cpp
+#	${PROJECT_SOURCE_DIR}/src/utils/imgui_draw.cpp
+#	${PROJECT_SOURCE_DIR}/src/utils/gfx_ui.cpp
+#)
+
+
+# Declare the support files needed for OpenGL2 (using gfx2.h) demos
+#set(GFX2_SUPPORT_SOURCES
+#	${GL2_SUPPORT_SOURCES}
+#	${PROJECT_SOURCE_DIR}/src/utils/gfx2.cpp
+#)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+include_directories(
+# include
+  ${catkin_INCLUDE_DIRS}
+)
+
+## Declare a C++ library
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/pbdlib_manager.cpp
+# )
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+# add_executable(${PROJECT_NAME}_node src/pbdlib_manager_node.cpp)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
+
+
+# Dependencies
+find_package(OpenGL REQUIRED)
+find_package(Armadillo 5.4 REQUIRED)
+find_package(GLEW REQUIRED)
+
+
+if(APPLE)
+	set(ARMADILLO_LIBRARIES
+		${ARMADILLO_LIBRARIES}
+		lapack
+		blas)
+
+	include_directories(
+		/usr/local/include
+	)
+
+	link_directories(
+		/usr/local/Frameworks
+		/usr/local/lib
+	)
+
+	set(GLFWLIB_SEARCH_PATH /usr/local/lib)
+	find_library(GLFW_LIB NAMES glfw3 glfw PATHS ${GLFWLIB_SEARCH_PATH})
+
+	# Hack to include Mac frameworks
+	set(GLFW_LIB
+		${GLFW_LIB}
+		"-framework CoreFoundation"
+		"-framework OpenGL"	
+		"-framework Cocoa"
+		"-framework AppKit"
+		"-framework CoreVideo"
+		"-framework QTKit"
+		"-framework IOKit"
+		"-framework AGL"
+		"-framework GLUT"
+	)
+
+elseif(UNIX)
+
+	set(GLFWLIB_SEARCH_PATH /usr/lib/x86_64-linux-gnu/ /usr/local/lib/)
+	find_library(GLFW_LIB glfw PATHS ${GLFWLIB_SEARCH_PATH})
+
+endif()
+
+
+# Check compiler compatibility
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif(COMPILER_SUPPORTS_CXX0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
+# Copy data/ to build so that the examples can load from that location
+FILE(COPY ${PROJECT_SOURCE_DIR}/data DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+
+
+# Setup the include directories
+include_directories(
+	${PROJECT_SOURCE_DIR}/include/
+	${PROJECT_SOURCE_DIR}/include/arpack-arma/include
+	${ARMADILLO_INCLUDE_DIRS}
+)
+
+#############
+## Install ##
+#############
+
+# all install targets should use catkin DESTINATION variables
+# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
+
+## Mark executable scripts (Python etc.) for installation
+## in contrast to setup.py, you can choose the destination
+# install(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+## Mark executables and/or libraries for installation
+# install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+# Mark cpp header files for installation
+# install(DIRECTORY include/${PROJECT_NAME}/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  FILES_MATCHING PATTERN "*.h"
+#  PATTERN ".svn" EXCLUDE
+# )
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+# install(FILES
+#   # myfile1
+#   # myfile2
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
+
+TARGET_LINK_LIBRARIES(pbd ${ARMADILLO_LIBRARIES})
+
+# Copy data/ to build so that the examples can load from that location
+FILE(COPY ${PROJECT_SOURCE_DIR}/data DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/examples/)
+
+################################################################################
+### install
+################################################################################
+SET(ROOT_INSTALL_LIBDIR lib)
+SET(ROOT_INSTALL_INCLUDEDIR include)
+FILE(GLOB headers ${CMAKE_CURRENT_SOURCE_DIR}/include/pbdlib/*.h)
+FILE(GLOB headers ${CMAKE_CURRENT_SOURCE_DIR}/include/MotionPrimitives.h)
+
+INSTALL(TARGETS pbd DESTINATION ${ROOT_INSTALL_LIBDIR})	
+INSTALL(FILES ${headers} DESTINATION ${ROOT_INSTALL_INCLUDEDIR}/pbdlib/)
+
+#############
+## Testing ##
+#############
+
+## Add gtest based cpp test target and link libraries
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_pbdlib_manager.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
+
+## Add folders to be run by python nosetests
+# catkin_add_nosetests(test)
+
+#find_library(ARMADILLO_LIBRARIES armadillo)
+#target_link_libraries(PhantomListener ${catkin_LIBRARIES})
+#target_link_libraries(PhantomListener pbd ${ARMADILLO_LIBRARIES})
+
+add_executable(pbdlibSimpleDemo
+#	${GFX2_SUPPORT_SOURCES}
+	${PROJECT_SOURCE_DIR}/src/main.cpp
+	${PROJECT_SOURCE_DIR}/src/MotionPrimitives.cpp
+	${PROJECT_SOURCE_DIR}/src/testCubic.cpp
+	${PROJECT_SOURCE_DIR}/src/spline.cpp
+)
+target_link_libraries(pbdlibSimpleDemo pbd
+#	${OPENGL_LIBRARIES}
+#	${GLEW_LIBRARIES}
+#	${GLFW_LIB}
+	${ARMADILLO_LIBRARIES}
+	${catkin_LIBRARIES}
+)
+

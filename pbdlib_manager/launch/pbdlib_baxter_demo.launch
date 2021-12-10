@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="pbdlib_manager" type="pbdlibSimpleDemo" name="pbdlib_simple_demo" output="screen"/>
+</launch>

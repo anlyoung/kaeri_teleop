@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="kinect1_link_broadcaster" args="0.133 -0.012 0.990 0.018 0.266 -0.048 0.963 world kinect1_link 50" />
+</launch>

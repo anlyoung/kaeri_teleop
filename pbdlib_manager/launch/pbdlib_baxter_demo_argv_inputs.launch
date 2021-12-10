@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="pbdlib_manager" type="pbdlibSimpleDemoArgvInput" name="pbdlib_simple_demo_Argv_Input" output="screen">
+        <param name="camera_index" value="$(arg camera_index)" />
+    </node>
+</launch>

@@ -1,0 +1,16 @@
+kinfu_DL package includes 2 nodes:
+	
+	kinfu - reconstructs environment into 3D TSDF volume and generates trigonal mesh
+	RGBD_link_tf_broadcaster - changes camera_link pose and broadcasts transformation from world to camera_link
+
+
+kinfu utilizes kinfuTracker class (kinfu.cpp) in kinfu_large_scale folder. It is large library, so you need to study about it with PCL library API documents.
+
+
+In /src/kinfu folder, there are a number of cpp files and header files. KinFu_DL.cpp includes main function of kinfu node. main function uses KinFuDLApp defined in "KinFuDLApp.cpp" and "KinFuDLApp.h".
+KinFuDLApp subscribes and publishes many different messages. Also it listens and broadcasts tf frames. Each header files defines subscriber or publisher class so that KinFuDLApp can handle messages and tf frames. Lastly, parameters.h defines ROS parameters for each of subscribers and publishers. ROS parameter can be accessed with "rosparam list", "rosparam get" commands.
+
+
+In launch folder, different launch files runs kinfu node with different configurations (RGBD camera, computer settings). xxx_single works when RGBD sensor is connected to the computer which runs kinfu node. xxx_multi and xxx_only world when RGBD sensor is connected to a remote computer, and kinfu node is run by the other computer. The both cases runs openni_launch (or freenect, openni2 according to RGBD sensor), RGBD_link_tf_broadcaster and kinfu.
+
+ 

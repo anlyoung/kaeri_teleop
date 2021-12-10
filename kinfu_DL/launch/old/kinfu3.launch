@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+ <!-- <node pkg="tf" type="static_transform_publisher" name="kinect1_link_broadcaster" args="0.0 0.0 -100 0.44935116 0.06246824 0.76784202 0.45232719 world kinect1_link 50" />-->
+	<!--<node pkg="tf" type="static_transform_publisher" name="kinect1_link_broadcaster" args="0.050 0.014 0.983 0.057 0.273 0.096 0.955 world kinect1_link 50" />-->
+	<!--<node pkg="tf" type="static_transform_publisher" name="kinect1_link_broadcaster" args="0.050 0.014 0.983 0.027 0.272 -0.008 0.962 world kinect1_link 50" />-->
+	<!--<node pkg="tf" type="static_transform_publisher" name="kinect1_link_broadcaster" args="0.04502 -0.01593 0.9764 0.0426 0.2650 0.01534 0.9632 world kinect1_link 50" />-->
+	<!--<node pkg="tf" type="static_transform_publisher" name="kinect1_link_broadcaster" args="0.3235 -0.01190 0.8427 -0.0242 0.2989 -0.2459 0.9217 world kinect1_link 50" />-->
+
+  <arg name="new_window" default="false"/>
+  <arg name="window_size" default="70x20+0+0"/>
+  <arg name="window_title" default="ros_kinfu"/>
+  <group if="$(arg new_window)">
+    <node pkg="kinfu" type="kinfu" name="kinect_kinfu1" output="screen" launch-prefix="gnome-terminal --title=$(arg window_title) --geometry $(arg window_size) --command">
+	  <param name="prefix_topic" value="/kinect1" />
+	  <param name="autostart" value="true" />
+	  <param name="response_topic" value="/kinfu1_response_topic" />
+	  <param name="request_topic" value="/kinfu1_request_topic" />
+	  <param name="extract_known_points" value="true" />
+		
+		<param name="volume_size" value="1.5"/>
+		<param name="shift_distance" value="0.75"/>
+	</node>
+  </group>
+
+  <group unless="$(arg new_window)">
+    <node pkg="kinfu" type="kinfu" name="kinect_kinfu1" output="screen">
+	  <param name="prefix_topic" value="/kinect1" />
+	  <param name="autostart" value="true" />
+	  <param name="response_topic" value="/kinfu1_response_topic" />
+	  <param name="request_topic" value="/kinfu1_request_topic" />
+	  <param name="extract_known_points" value="true" />
+
+		<param name="volume_size" value="1.5"/>
+		<param name="shift_distance" value="0.75"/>
+	</node>
+  </group>
+
+</launch>

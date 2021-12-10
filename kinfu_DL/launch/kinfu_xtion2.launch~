@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="xtion_link_broadcaster" args="0 0 0 0 0 0 1 left_gripper xtion_link 50" />
+
+  <arg name="new_window" default="false"/>
+  <arg name="window_size" default="70x20+0+0"/>
+  <arg name="window_title" default="ros_kinfu"/>
+  <group if="$(arg new_window)">
+    <node pkg="kinfu" type="kinfu" name="xtion_kinfu" output="screen" launch-prefix="gnome-terminal --title=$(arg window_title) --geometry $(arg window_size) --command">
+	  <param name="prefix_topic" value="/xtion" />
+	  <param name="autostart" value="true" />
+
+		<param name="volume_size" value="1.5"/>
+		<param name="shift_distance" value="0.75"/>
+	</node>
+  </group>
+
+  <group unless="$(arg new_window)">
+    <node pkg="kinfu" type="kinfu" name="xtion_kinfu" output="screen">
+	  <param name="prefix_topic" value="/xtion" />
+	  <param name="autostart" value="true" />
+
+		<param name="volume_size" value="1.5"/>
+		<param name="shift_distance" value="0.75"/>
+	</node>
+  </group>
+
+</launch>

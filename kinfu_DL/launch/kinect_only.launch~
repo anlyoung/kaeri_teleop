@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find freenect_launch)/launch/freenect.launch">
+  <arg name="camera" value="kinect" />
+  </include>
+
+	<!--<node pkg="kinfu" type="RGBD_link_tf_broadcaster" name="link_tf_broadcaster" output="screen">
+	<param name="prefix_topic" value="kinect"/>
+	</node>
+-->
+</launch>

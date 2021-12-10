@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="prefix" default="/kinect1"/>
+
+	<node pkg="kinfu" type="RGBD_link_tf_broadcaster" name="link_tf_broadcaster" output="screen">
+	<param name="prefix_topic" value="$(prefix)"/>
+	</node>
+</launch>
